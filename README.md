@@ -1,4 +1,4 @@
-[![✗](https://img.shields.io/badge/Release-v2.0.0-ffb600.svg?style=for-the-badge)](https://github.com/LyT-Labs/PICTURE/releases)
+[![✗](https://img.shields.io/badge/Release-v0.0.0-ffb600.svg?style=for-the-badge)](https://github.com/LyT-Labs/PICTURE/releases)
 
 [![✗](https://github.com/LyT-Labs/PICTURE/actions/workflows/pipeline.yaml/badge.svg?branch=production)](https://github.com/LyT-Labs/PICTURE/actions/workflows/pipeline.yaml)
 
