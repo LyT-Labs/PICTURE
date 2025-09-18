@@ -18,6 +18,10 @@
 *.csproj.user
 *~
 
+# Vim swap
+*.swp
+*.swo
+
 # Application specific.
 /program
 /subexp
