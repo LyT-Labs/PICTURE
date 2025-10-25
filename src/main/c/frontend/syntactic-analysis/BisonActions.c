@@ -1,9 +1,58 @@
 #include "BisonActions.h"
+#include <string.h>
 
 /* MODULE INTERNAL STATE */
 
 static CompilerState * _compilerState = NULL;
 static Logger * _logger = NULL;
+
+/* Semantic validation state */
+#define MAX_COMPONENTS 256
+static char * _componentIds[MAX_COMPONENTS];
+static int _componentCount = 0;
+static bool _hasSemanticError = false;
+
+/* Valid property names catalog */
+static const char * VALID_PROPERTIES[] = {
+	"background", "text", "font_size", "color", "on_press", "on_select", 
+	"on_keypress", "align", "width", "height", "x", "y", NULL
+};
+
+/* Helper function to check if property is valid */
+static bool _isValidProperty(const char * propertyName) {
+	for (int i = 0; VALID_PROPERTIES[i] != NULL; i++) {
+		if (strcmp(VALID_PROPERTIES[i], propertyName) == 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/* Helper function to check if ID is unique */
+static bool _isUniqueId(const char * id) {
+	for (int i = 0; i < _componentCount; i++) {
+		if (strcmp(_componentIds[i], id) == 0) {
+			return false;
+		}
+	}
+	return true;
+}
+
+/* Helper function to register a component ID */
+static void _registerComponentId(const char * id) {
+	if (_componentCount < MAX_COMPONENTS) {
+		_componentIds[_componentCount++] = (char *)id;
+	}
+}
+
+/* Reset validation state */
+static void _resetValidationState() {
+	_componentCount = 0;
+	_hasSemanticError = false;
+	for (int i = 0; i < MAX_COMPONENTS; i++) {
+		_componentIds[i] = NULL;
+	}
+}
 
 /** Shutdown module's internal state. */
 void _shutdownBisonActionsModule() {
@@ -12,16 +61,16 @@ void _shutdownBisonActionsModule() {
 		destroyLogger(_logger);
 		_logger = NULL;
 	}
+	_resetValidationState();
 	_compilerState = NULL;
 }
 
 ModuleDestructor initializeBisonActionsModule(CompilerState * compilerState) {
 	_compilerState = compilerState;
 	_logger = createLogger("BisonActions");
+	_resetValidationState();
 	return _shutdownBisonActionsModule;
 }
-
-/* IMPORTED FUNCTIONS */
 
 /* PRIVATE FUNCTIONS */
 
@@ -34,52 +83,219 @@ static void _logSyntacticAnalyzerAction(const char * functionName) {
 	logDebugging(_logger, "%s", functionName);
 }
 
-/* PUBLIC FUNCTIONS */
+/* PUBLIC FUNCTIONS - VALUE ACTIONS */
 
-Constant * IntegerConstantSemanticAction(const int value) {
+Value * StringValueSemanticAction(const char * stringValue) {
 	_logSyntacticAnalyzerAction(__FUNCTION__);
-	Constant * constant = calloc(1, sizeof(Constant));
-	constant->value = value;
-	return constant;
+	Value * value = calloc(1, sizeof(Value));
+	value->type = VALUE_STRING;
+	value->stringValue = (char *)stringValue;
+	return value;
 }
 
-Expression * ArithmeticExpressionSemanticAction(Expression * leftExpression, Expression * rightExpression, ExpressionType type) {
+Value * NumberValueSemanticAction(const int numberValue) {
 	_logSyntacticAnalyzerAction(__FUNCTION__);
-	Expression * expression = calloc(1, sizeof(Expression));
-	expression->leftExpression = leftExpression;
-	expression->rightExpression = rightExpression;
-	expression->type = type;
-	return expression;
+	Value * value = calloc(1, sizeof(Value));
+	value->type = VALUE_NUMBER;
+	value->numberValue = numberValue;
+	return value;
 }
 
-Expression * FactorExpressionSemanticAction(Factor * factor) {
+Value * IdentifierValueSemanticAction(const char * identifierValue) {
 	_logSyntacticAnalyzerAction(__FUNCTION__);
-	Expression * expression = calloc(1, sizeof(Expression));
-	expression->factor = factor;
-	expression->type = FACTOR;
-	return expression;
+	Value * value = calloc(1, sizeof(Value));
+	value->type = VALUE_IDENTIFIER;
+	value->identifierValue = (char *)identifierValue;
+	return value;
 }
 
-Factor * ConstantFactorSemanticAction(Constant * constant) {
+Value * BuiltinValueSemanticAction(const char * builtinValue) {
 	_logSyntacticAnalyzerAction(__FUNCTION__);
-	Factor * factor = calloc(1, sizeof(Factor));
-	factor->constant = constant;
-	factor->type = CONSTANT;
-	return factor;
+	Value * value = calloc(1, sizeof(Value));
+	value->type = VALUE_BUILTIN;
+	value->identifierValue = (char *)builtinValue;
+	return value;
 }
 
-Factor * ExpressionFactorSemanticAction(Expression * expression) {
+/* PROPERTY ACTIONS */
+
+Property * PropertySemanticAction(const char * key, Value * value) {
 	_logSyntacticAnalyzerAction(__FUNCTION__);
-	Factor * factor = calloc(1, sizeof(Factor));
-	factor->expression = expression;
-	factor->type = EXPRESSION;
-	return factor;
+	
+	if (!_isValidProperty(key)) {
+		logError(_logger, "Invalid property '%s' - not in the catalog of valid properties", key);
+		_hasSemanticError = true;
+		if (key) free((char *)key);
+		destroyValue(value);
+		return NULL;
+	}
+	
+	Property * property = calloc(1, sizeof(Property));
+	property->key = (char *)key;
+	property->value = value;
+	property->next = NULL;
+	
+	if (strcmp(key, "background") == 0) {
+		property->type = PROP_BACKGROUND;
+	} else if (strcmp(key, "text") == 0) {
+		property->type = PROP_TEXT;
+	} else if (strcmp(key, "font_size") == 0) {
+		property->type = PROP_FONT_SIZE;
+	} else if (strcmp(key, "on_press") == 0) {
+		property->type = PROP_ON_PRESS;
+	} else if (strcmp(key, "align") == 0) {
+		property->type = PROP_ALIGN;
+	} else if (strcmp(key, "width") == 0) {
+		property->type = PROP_WIDTH;
+	} else if (strcmp(key, "height") == 0) {
+		property->type = PROP_HEIGHT;
+	} else if (strcmp(key, "x") == 0) {
+		property->type = PROP_X;
+	} else if (strcmp(key, "y") == 0) {
+		property->type = PROP_Y;
+	} else if (strcmp(key, "on_select") == 0) {
+		property->type = PROP_ON_SELECT;
+	} else if (strcmp(key, "on_keypress") == 0) {
+		property->type = PROP_ON_KEYPRESS;
+	}
+	
+	return property;
 }
 
-Program * ExpressionProgramSemanticAction(Expression * expression) {
+PropertyList * CreatePropertyListSemanticAction() {
 	_logSyntacticAnalyzerAction(__FUNCTION__);
+	PropertyList * list = calloc(1, sizeof(PropertyList));
+	list->first = NULL;
+	list->last = NULL;
+	return list;
+}
+
+PropertyList * AddPropertySemanticAction(PropertyList * list, Property * property) {
+	_logSyntacticAnalyzerAction(__FUNCTION__);
+	if (list->first == NULL) {
+		list->first = property;
+		list->last = property;
+	} else {
+		list->last->next = property;
+		list->last = property;
+	}
+	return list;
+}
+
+/* COMPONENT ACTIONS */
+
+Component * ComponentSemanticAction(const char * id, PropertyList * properties, ComponentList * children) {
+	_logSyntacticAnalyzerAction(__FUNCTION__);
+	
+	if (!_isUniqueId(id)) {
+		logError(_logger, "Duplicate component ID '%s' - IDs must be unique within the program", id);
+		_hasSemanticError = true;
+		if (id) free((char *)id);
+		destroyPropertyList(properties);
+		destroyComponentList(children);
+		return NULL;
+	}
+	
+	Component * component = calloc(1, sizeof(Component));
+	component->id = (char *)id;
+	component->properties = properties;
+	component->children = children;
+	component->next = NULL;
+	
+	_registerComponentId(component->id);
+	
+	return component;
+}
+
+ComponentList * CreateComponentListSemanticAction() {
+	_logSyntacticAnalyzerAction(__FUNCTION__);
+	ComponentList * list = calloc(1, sizeof(ComponentList));
+	list->first = NULL;
+	list->last = NULL;
+	return list;
+}
+
+ComponentList * AddComponentSemanticAction(ComponentList * list, Component * component) {
+	_logSyntacticAnalyzerAction(__FUNCTION__);
+	if (list->first == NULL) {
+		list->first = component;
+		list->last = component;
+	} else {
+		list->last->next = component;
+		list->last = component;
+	}
+	return list;
+}
+
+/* VARIABLE ACTIONS */
+
+Variable * VariableSemanticAction(const char * name, Value * value) {
+	_logSyntacticAnalyzerAction(__FUNCTION__);
+	Variable * variable = calloc(1, sizeof(Variable));
+	variable->name = (char *)name;
+	variable->value = value;
+	variable->next = NULL;
+	return variable;
+}
+
+VariableList * CreateVariableListSemanticAction() {
+	_logSyntacticAnalyzerAction(__FUNCTION__);
+	VariableList * list = calloc(1, sizeof(VariableList));
+	list->first = NULL;
+	list->last = NULL;
+	return list;
+}
+
+VariableList * AddVariableSemanticAction(VariableList * list, Variable * variable) {
+	_logSyntacticAnalyzerAction(__FUNCTION__);
+	if (list->first == NULL) {
+		list->first = variable;
+		list->last = variable;
+	} else {
+		list->last->next = variable;
+		list->last = variable;
+	}
+	return list;
+}
+
+/* PROGRAM ACTION */
+
+Program * ProgramSemanticAction(VariableList * variables, ComponentList * components) {
+	_logSyntacticAnalyzerAction(__FUNCTION__);
+	
+	if (_hasSemanticError) {
+		logError(_logger, "Program rejected due to semantic errors");
+		destroyVariableList(variables);
+		destroyComponentList(components);
+		_resetValidationState();
+		return NULL;
+	}
+	
+	
 	Program * program = calloc(1, sizeof(Program));
-	program->expression = expression;
+	program->variables = variables;
+	program->components = components;
+	
+	Constant * dummyConstant = calloc(1, sizeof(Constant));
+	dummyConstant->value = 0;
+	
+	Factor * dummyFactor = calloc(1, sizeof(Factor));
+	dummyFactor->constant = dummyConstant;
+	dummyFactor->type = CONSTANT;
+	
+	Expression * dummyExpression = calloc(1, sizeof(Expression));
+	dummyExpression->factor = dummyFactor;
+	dummyExpression->type = FACTOR;
+	
+	program->expression = dummyExpression;
 	_compilerState->abstractSyntaxtTree = program;
+	
+	if (program->variables == NULL) {
+		program->variables = CreateVariableListSemanticAction();
+	}
+	if (program->components == NULL) {
+		program->components = CreateComponentListSemanticAction();
+	}
+	
 	return program;
 }

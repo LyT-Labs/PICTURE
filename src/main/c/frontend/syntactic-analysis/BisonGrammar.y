@@ -27,14 +27,24 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 	/** Terminals. */
 
 	signed int integer;
+	char * string;
 	TokenLabel token;
 
 	/** Non-terminals. */
 
+	Value * value;
+	Property * property;
+	PropertyList * propertyList;
+	Component * component;
+	ComponentList * componentList;
+	Variable * variable;
+	VariableList * variableList;
+	Program * program;
+
+	/** Legacy types for backend compatibility. */
 	Constant * constant;
 	Expression * expression;
 	Factor * factor;
-	Program * program;
 }
 
 /**
@@ -45,60 +55,112 @@ void yyerror(const YYLTYPE * location, const char * message) {}
  *
  * @see https://www.gnu.org/software/bison/manual/html_node/Destructor-Decl.html
  */
-%destructor { destroyConstant($$); } <constant>
-%destructor { destroyExpression($$); } <expression>
-%destructor { destroyFactor($$); } <factor>
+/** Destructors for string tokens - critical to avoid leaks on parse errors */
+%destructor { if ($$) free($$); } <string>
 
-/** Terminals. */
-%token <integer> INTEGER
-%token <token> ADD
-%token <token> CLOSE_BRACE
-%token <token> CLOSE_COMMENT
-%token <token> CLOSE_PARENTHESIS
-%token <token> DIV
-%token <token> MUL
-%token <token> OPEN_BRACE
-%token <token> OPEN_COMMENT
-%token <token> OPEN_PARENTHESIS
-%token <token> SUB
+%destructor { destroyValue($$); } <value>
+%destructor { destroyProperty($$); } <property>
+%destructor { destroyPropertyList($$); } <propertyList>
+%destructor { destroyComponent($$); } <component>
+%destructor { destroyComponentList($$); } <componentList>
+%destructor { destroyVariable($$); } <variable>
+%destructor { destroyVariableList($$); } <variableList>
 
-%token <token> IGNORED
-%token <token> UNKNOWN
+/** Legacy destructors - not used in grammar, only for backend compatibility */
+/** Commented out to avoid Bison warnings about unused types */
+// %destructor { destroyConstant($$); } <constant>
+// %destructor { destroyExpression($$); } <expression>
+// %destructor { destroyFactor($$); } <factor>
+
+/** PICTURE Terminals. */
+%token <token> VARIABLE_DELIMITER    // ---
+%token <string> COMPONENT_ID         // #identifier
+%token <string> PROPERTY             // - property_name
+%token <token> COLON                 // :
+%token <string> STRING               // "text"
+%token <integer> NUMBER              // 123
+%token <string> IDENTIFIER           // variable_name
+%token <string> BUILTIN              // m, l, red, etc
+%token <token> INDENT                // indentation increase
+%token <token> DEDENT                // indentation decrease
+%token <token> NEWLINE               // line break
+
+%token <token> COMMENT               // // comment
+%token <token> IGNORED               // whitespace, tabs
+%token <token> UNKNOWN               // unrecognized characters
 
 /** Non-terminals. */
-%type <constant> constant
-%type <expression> expression
-%type <factor> factor
+%type <value> value
+%type <property> property
+%type <propertyList> property_list
+%type <component> component
+%type <componentList> component_list
+%type <variable> variable
+%type <variableList> variable_list
+%type <variableList> variable_section
 %type <program> program
+%type <program> declarations
 
 /**
- * Precedence and associativity.
- *
- * @see https://en.cppreference.com/w/cpp/language/operator_precedence.html
- * @see https://www.gnu.org/software/bison/manual/html_node/Precedence.html
+ * No precedence needed for PICTURE - it's declarative, not expression-based.
  */
-%left ADD SUB
-%left MUL DIV
 
 %%
 
-// IMPORTANT: To use λ in the following grammar, use the %empty symbol.
+// PICTURE Grammar Rules
 
-program: expression											{ $$ = ExpressionProgramSemanticAction($1); }
+program: %empty												{ $$ = ProgramSemanticAction(NULL, NULL); if (!$$) YYERROR; }
+	| newlines												{ $$ = ProgramSemanticAction(NULL, NULL); if (!$$) YYERROR; }
+	| declarations											{ $$ = $1; }
+	| newlines declarations									{ $$ = $2; }
 	;
 
-expression: expression[left] ADD expression[right]			{ $$ = ArithmeticExpressionSemanticAction($left, $right, ADDITION); }
-	| expression[left] DIV expression[right]				{ $$ = ArithmeticExpressionSemanticAction($left, $right, DIVISION); }
-	| expression[left] MUL expression[right]				{ $$ = ArithmeticExpressionSemanticAction($left, $right, MULTIPLICATION); }
-	| expression[left] SUB expression[right]				{ $$ = ArithmeticExpressionSemanticAction($left, $right, SUBTRACTION); }
-	| factor												{ $$ = FactorExpressionSemanticAction($1); }
+declarations: variable_section component_list				{ $$ = ProgramSemanticAction($1, $2); if (!$$) YYERROR; }
+	| variable_section newlines component_list				{ $$ = ProgramSemanticAction($1, $3); if (!$$) YYERROR; }
+	| component_list										{ $$ = ProgramSemanticAction(NULL, $1); if (!$$) YYERROR; }
+	| variable_section										{ $$ = ProgramSemanticAction($1, NULL); if (!$$) YYERROR; }
+	| variable_section newlines								{ $$ = ProgramSemanticAction($1, NULL); if (!$$) YYERROR; }
 	;
 
-factor: OPEN_PARENTHESIS expression CLOSE_PARENTHESIS		{ $$ = ExpressionFactorSemanticAction($2); }
-	| constant												{ $$ = ConstantFactorSemanticAction($1); }
+variable_section: VARIABLE_DELIMITER newlines variable_list VARIABLE_DELIMITER
+														{ $$ = $3; }
+	| VARIABLE_DELIMITER newlines VARIABLE_DELIMITER
+														{ $$ = CreateVariableListSemanticAction(); }
 	;
 
-constant: INTEGER											{ $$ = IntegerConstantSemanticAction($1); }
+variable_list: variable newlines							{ $$ = CreateVariableListSemanticAction(); $$ = AddVariableSemanticAction($$, $1); }
+	| variable_list variable newlines						{ $$ = AddVariableSemanticAction($1, $2); }
+	;
+
+variable: PROPERTY COLON value								{ $$ = VariableSemanticAction($1, $3); }
+	;
+
+component_list: component									{ if (!$1) YYERROR; $$ = CreateComponentListSemanticAction(); $$ = AddComponentSemanticAction($$, $1); }
+	| component_list component								{ if (!$2) YYERROR; $$ = AddComponentSemanticAction($1, $2); }
+	;
+
+component: COMPONENT_ID newlines							{ $$ = ComponentSemanticAction($1, NULL, NULL); if (!$$) YYERROR; }
+	| COMPONENT_ID newlines INDENT property_list DEDENT		{ $$ = ComponentSemanticAction($1, $4, NULL); if (!$$) YYERROR; }
+	| COMPONENT_ID newlines INDENT property_list component_list DEDENT
+														{ $$ = ComponentSemanticAction($1, $4, $5); if (!$$) YYERROR; }
+	| COMPONENT_ID newlines INDENT component_list DEDENT	{ $$ = ComponentSemanticAction($1, NULL, $4); if (!$$) YYERROR; }
+	;
+
+property_list: property newlines							{ if (!$1) YYERROR; $$ = CreatePropertyListSemanticAction(); $$ = AddPropertySemanticAction($$, $1); }
+	| property_list property newlines						{ if (!$2) YYERROR; $$ = AddPropertySemanticAction($1, $2); }
+	;
+
+property: PROPERTY COLON value								{ $$ = PropertySemanticAction($1, $3); if (!$$) YYERROR; }
+	;
+
+value: STRING												{ $$ = StringValueSemanticAction($1); }
+	| NUMBER												{ $$ = NumberValueSemanticAction($1); }
+	| IDENTIFIER											{ $$ = IdentifierValueSemanticAction($1); }
+	| BUILTIN												{ $$ = BuiltinValueSemanticAction($1); }
+	;
+
+newlines: NEWLINE
+	| newlines NEWLINE
 	;
 
 %%

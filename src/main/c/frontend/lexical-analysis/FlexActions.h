@@ -15,4 +15,23 @@
 /** Initialize module's internal state. */
 ModuleDestructor initializeFlexActionsModule();
 
+/**
+ * PICTURE lexical action prototypes.
+ */
+CompilationStatus VariableDelimiterLexemeAction();
+CompilationStatus ComponentIdLexemeAction();
+CompilationStatus PropertyLexemeAction();
+CompilationStatus ColonLexemeAction();
+CompilationStatus StringLexemeAction();
+CompilationStatus NumberLexemeAction();
+CompilationStatus IdentifierLexemeAction();
+CompilationStatus BuiltinLexemeAction();
+CompilationStatus CommentLexemeAction();
+CompilationStatus NewlineLexemeAction();
+CompilationStatus IndentLexemeAction();
+CompilationStatus DedentLexemeAction();
+CompilationStatus EOFLexemeAction();
+CompilationStatus IgnoredLexemeAction();
+CompilationStatus UnknownLexemeAction();
+
 #endif

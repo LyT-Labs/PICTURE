@@ -11,70 +11,71 @@
 %{
 
 /**
+ * PICTURE lexical analyzer patterns.
  * @see https://westes.github.io/flex/manual/Definitions-Section.html#Definitions-Section
  */
 
-extern CompilationStatus ArithmeticOperatorLexemeAction(TokenLabel label);
-extern CompilationStatus EnterImportExpressionLexemeAction(FlexContext context);
-extern CompilationStatus EnterMultilineCommentLexemeAction(FlexContext context);
+extern CompilationStatus VariableDelimiterLexemeAction();
+extern CompilationStatus ComponentIdLexemeAction();
+extern CompilationStatus PropertyLexemeAction();
+extern CompilationStatus ColonLexemeAction();
+extern CompilationStatus StringLexemeAction();
+extern CompilationStatus NumberLexemeAction();
+extern CompilationStatus IdentifierLexemeAction();
+extern CompilationStatus BuiltinLexemeAction();
+extern CompilationStatus CommentLexemeAction();
+extern CompilationStatus NewlineLexemeAction();
+extern CompilationStatus IndentLexemeAction();
+extern CompilationStatus DedentLexemeAction();
 extern CompilationStatus EOFLexemeAction();
 extern CompilationStatus IgnoredLexemeAction();
-extern CompilationStatus IntegerLexemeAction();
-extern CompilationStatus LeaveImportExpressionLexemeAction();
-extern CompilationStatus LeaveMultilineCommentLexemeAction();
-extern CompilationStatus ParenthesisLexemeAction(TokenLabel label);
-extern CompilationStatus SubexpressionLexemeAction();
 extern CompilationStatus UnknownLexemeAction();
 
 %}
 
 /**
- * Flex contexts (a.k.a. start conditions).
- *
- * @see https://westes.github.io/flex/manual/Start-Conditions.html
- */
-%x IMPORT_EXPRESSION
-%x MULTILINE_COMMENT
-
-/**
- * Reusable patterns.
+ * Reusable patterns for PICTURE language.
  *
  * @see https://westes.github.io/flex/manual/Matching.html
  * @see https://westes.github.io/flex/manual/Patterns.html
  */
-whitespace			[[:space:]]+
+identifier			[a-zA-Z_][a-zA-Z0-9_]*
+string				\"([^\"\\]|\\.)*\"
+number				[0-9]+
+builtin				(s|m|l|red|blue|green|white|black|center|left|right|top|bottom)
+whitespace			[ ]
+tab					\t
 
 %%
 
 %{
 
 /**
+ * PICTURE language lexical rules.
  * @see https://westes.github.io/flex/manual/Rules-Section.html#Rules-Section
  */
 
 %}
 
-"{"									{ return EnterImportExpressionLexemeAction(IMPORT_EXPRESSION); }
-<IMPORT_EXPRESSION>[^{}]+			{ return SubexpressionLexemeAction(); }
-<IMPORT_EXPRESSION>"}"				{ return LeaveImportExpressionLexemeAction(); }
-<IMPORT_EXPRESSION>.				{ return UnknownLexemeAction(); }
+"---"								{ return VariableDelimiterLexemeAction(); }
 
-"/*"								{ return EnterMultilineCommentLexemeAction(MULTILINE_COMMENT); }
-<MULTILINE_COMMENT>"*/"				{ return LeaveMultilineCommentLexemeAction(); }
-<MULTILINE_COMMENT>[^*]+			{ return IgnoredLexemeAction(); }
-<MULTILINE_COMMENT>.				{ return IgnoredLexemeAction(); }
+^({tab}|{whitespace}{whitespace})+	{ return IndentLexemeAction(); }
+^"#"{whitespace}*{identifier}		{ return ComponentIdLexemeAction(); }
+^"-"{whitespace}*{identifier}		{ return PropertyLexemeAction(); }
 
-"-"									{ return ArithmeticOperatorLexemeAction(SUB); }
-"*"									{ return ArithmeticOperatorLexemeAction(MUL); }
-"/"									{ return ArithmeticOperatorLexemeAction(DIV); }
-"+"									{ return ArithmeticOperatorLexemeAction(ADD); }
+"#"{whitespace}*{identifier}		{ return ComponentIdLexemeAction(); }
+"-"{whitespace}*{identifier}		{ return PropertyLexemeAction(); }
+":"									{ return ColonLexemeAction(); }
 
-"("									{ return ParenthesisLexemeAction(OPEN_PARENTHESIS); }
-")"									{ return ParenthesisLexemeAction(CLOSE_PARENTHESIS); }
+{string}							{ return StringLexemeAction(); }
+{number}							{ return NumberLexemeAction(); }
+{builtin}							{ return BuiltinLexemeAction(); }
+{identifier}						{ return IdentifierLexemeAction(); }
 
-[[:digit:]]+						{ return IntegerLexemeAction(); }
+"//"[^\r\n]*						{ return CommentLexemeAction(); }
 
-{whitespace}						{ return IgnoredLexemeAction(); }
+[\r\n]+								{ return NewlineLexemeAction(); }
+{whitespace}+						{ return IgnoredLexemeAction(); }
 .									{ return UnknownLexemeAction(); }
 
 <<EOF>>								{ return EOFLexemeAction(); }

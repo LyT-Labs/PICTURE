@@ -13,14 +13,31 @@
 ModuleDestructor initializeBisonActionsModule();
 
 /**
- * Bison semantic actions.
+ * PICTURE semantic actions.
  */
 
-Constant * IntegerConstantSemanticAction(const int value);
-Expression * ArithmeticExpressionSemanticAction(Expression * leftExpression, Expression * rightExpression, ExpressionType type);
-Expression * FactorExpressionSemanticAction(Factor * factor);
-Factor * ConstantFactorSemanticAction(Constant * constant);
-Factor * ExpressionFactorSemanticAction(Expression * expression);
-Program * ExpressionProgramSemanticAction(Expression * expression);
+// Value actions
+Value * StringValueSemanticAction(const char * stringValue);
+Value * NumberValueSemanticAction(const int numberValue);
+Value * IdentifierValueSemanticAction(const char * identifierValue);
+Value * BuiltinValueSemanticAction(const char * builtinValue);
+
+// Property actions
+Property * PropertySemanticAction(const char * key, Value * value);
+PropertyList * CreatePropertyListSemanticAction();
+PropertyList * AddPropertySemanticAction(PropertyList * list, Property * property);
+
+// Component actions
+Component * ComponentSemanticAction(const char * id, PropertyList * properties, ComponentList * children);
+ComponentList * CreateComponentListSemanticAction();
+ComponentList * AddComponentSemanticAction(ComponentList * list, Component * component);
+
+// Variable actions
+Variable * VariableSemanticAction(const char * name, Value * value);
+VariableList * CreateVariableListSemanticAction();
+VariableList * AddVariableSemanticAction(VariableList * list, Variable * variable);
+
+// Program action
+Program * ProgramSemanticAction(VariableList * variables, ComponentList * components);
 
 #endif
