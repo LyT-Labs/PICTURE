@@ -1,0 +1,12 @@
+// Un botón con un callback on_press
+---
+- textSize: m
+- color: blue
+---
+
+# background
+	- background: color
+	
+# button1
+	- text: "Cambiar color"
+	- on_press: handle_press_color

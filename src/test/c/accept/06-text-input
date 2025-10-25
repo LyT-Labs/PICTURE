@@ -1,0 +1,6 @@
+// Un input de texto
+# input1
+	- text: ""
+	- on_keypress: handle_input
+	- width: 200
+	- height: 30

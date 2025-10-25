@@ -1,0 +1,5 @@
+// Componente sin id (error sintáctico)
+#
+	- text: "Error"
+
+

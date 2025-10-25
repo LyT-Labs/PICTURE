@@ -1,0 +1,16 @@
+// Varios hijos usando la misma variable
+---
+- sharedColor: red
+---
+
+# text1
+	- text: "Texto 1"
+	- color: sharedColor
+	
+# text2
+	- text: "Texto 2"
+	- color: sharedColor
+	
+# text3
+	- text: "Texto 3"
+	- color: sharedColor

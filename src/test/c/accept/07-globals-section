@@ -1,0 +1,25 @@
+// Ejemplo completo del documento
+---
+- textSize: m
+- color: blue
+---
+
+# main
+	- background: white
+	
+# background
+	- background: color
+	- width: 100
+	- height: 100
+	
+# title
+	- text: "Hola Mundo!"
+	- font_size: textSize
+	- x: 20
+	- y: 20
+	
+# button1
+	- text: "Cambiar color"
+	- x: 20
+	- y: 70
+	- on_press: handle_press_color

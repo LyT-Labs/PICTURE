@@ -1,0 +1,8 @@
+// Una ventana con un texto fijo de un color y tamaño específicos
+# main
+	- background: white
+	
+# title
+	- text: "Hola Mundo!"
+	- font_size: m
+	- color: red

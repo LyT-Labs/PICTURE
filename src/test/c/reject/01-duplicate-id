@@ -1,0 +1,6 @@
+// ID duplicado (error)
+# button1
+	- text: "Primero"
+	
+# button1
+	- text: "Segundo"

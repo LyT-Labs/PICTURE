@@ -1,0 +1,3 @@
+// Nombre de callback no compatible con C
+# button1
+	- on_press: 123invalid

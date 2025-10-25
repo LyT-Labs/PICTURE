@@ -1,0 +1,17 @@
+// Un panel que divida la pantalla en dos partes
+# main
+	- background: white
+	- width: 100
+	- height: 100
+
+# panel1
+	- width: 50
+	- height: 100
+	- x: 0
+	- y: 0
+	
+# panel2
+	- width: 50
+	- height: 100
+	- x: 50
+	- y: 0

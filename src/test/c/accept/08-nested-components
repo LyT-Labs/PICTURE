@@ -1,0 +1,15 @@
+// Componentes anidados con múltiples callbacks
+# container
+	- background: white
+	- width: 300
+	- height: 200
+	
+	# innerPanel
+		- x: 10
+		- y: 10
+		- width: 280
+		
+		# nestedButton
+			- text: "Click me"
+			- on_press: handle_click
+			- on_select: handle_select
