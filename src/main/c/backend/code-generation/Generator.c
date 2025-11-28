@@ -7,43 +7,22 @@
 #include "../../support/type/ModuleDestructor.h"
 
 /*
- * La idea de este generador:
+ * Generador de código PICTURE para PinkOS
  *
- * Genera algo de este estilo:
+ * Este generador produce código C estático que incluye:
+ * - Headers del runtime de PinkOS
+ * - Variables estáticas de colores builtin
+ * - ComponentRegistry con punteros a cada componente por ID
+ * - Array estático de componentes en orden BFS (breadth-first)
+ * - Array de selection_order para navegación
+ * - Función initialize_component_tree()
+ * - Función <identifier>_main() con el main loop
  *
- *   #include "ui_runtime.h"
+ * Los componentes se organizan en memoria de forma contígua por nivel,
+ * permitiendo acceso eficiente a hermanos y padres.
  *
- *   const char *textSize = "m";
- *   const char *color = "blue";
- *
- *   int main(void) {
- *       ui_init();
- *
- *       UIComponent main = ui_create_root("main");
- *       ui_set_background(main, "white");
- *
- *       UIComponent background = ui_create_child(main, "background");
- *       ui_set_background(background, color);
- *       ui_set_width(background, 100);
- *       ui_set_height(background, 100);
- *
- *       UIComponent title = ui_create_child(main, "title");
- *       ui_set_text(title, "Hola Mundo!");
- *       ui_set_font_size(title, textSize);
- *       ui_set_x(title, 20);
- *       ui_set_y(title, 20);
- *
- *       UIComponent button1 = ui_create_child(main, "button1");
- *       ui_set_text(button1, "Cambiar color");
- *       ui_set_x(button1, 20);
- *       ui_set_y(button1, 70);
- *       ui_set_on_press(button1, handle_press_color);
- *
- *       ui_run();
- *       return 0;
- *   }
- *
- * Vos después implementás ui_runtime.h / ui_runtime.c para hablar con tu SO.
+ * Las variables con valores builtin se expanden como macros en cada uso,
+ * sin generar declaraciones intermedias.
  */
 
 /* ------------------------------------------------------------------ */

@@ -3,7 +3,7 @@
 - mainColor: blue
 - customString: "Nested with Selection Order"
 * selection_order: btn1, btn2, input1
-* identifier: home_screen
+* identifier: picture_hola_mundo
 ---
 
 # mainContainer

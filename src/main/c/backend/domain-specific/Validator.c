@@ -1,4 +1,4 @@
-#include "Calculator.h"
+#include "Validator.h"
 
 #include <string.h>
 
@@ -9,17 +9,17 @@
 
 static Logger *_logger = NULL;
 
-static void _shutdownCalculatorModule(void) {
+static void _shutdownValidatorModule(void) {
     if (_logger != NULL) {
-        logDebugging(_logger, "Destroying module: Calculator...");
+        logDebugging(_logger, "Destroying module: Validator...");
         destroyLogger(_logger);
         _logger = NULL;
     }
 }
 
-ModuleDestructor initializeCalculatorModule(void) {
-    _logger = createLogger("Calculator");
-    return _shutdownCalculatorModule;
+ModuleDestructor initializeValidatorModule(void) {
+    _logger = createLogger("Validator");
+    return _shutdownValidatorModule;
 }
 
 
@@ -192,30 +192,30 @@ static bool _validateProgram(const Program *program) {
 }
 
 
-ComputationResult executeCalculator(CompilerState *compilerState) {
+ComputationResult executeValidator(CompilerState *compilerState) {
     ComputationResult result = {
         .succeeded = false,
         .value = 0
     };
 
     if (compilerState == NULL) {
-        logError(_logger, "executeCalculator: compilerState is NULL");
+        logError(_logger, "executeValidator: compilerState is NULL");
         return result;
     }
 
     Program *program = compilerState->abstractSyntaxtTree;
     if (program == NULL) {
-        logError(_logger, "executeCalculator: AST is NULL");
+        logError(_logger, "executeValidator: AST is NULL");
         return result;
     }
 
     logDebugging(_logger, "Validating PICTURE AST...");
     if (!_validateProgram(program)) {
-        logError(_logger, "executeCalculator: semantic validation failed");
+        logError(_logger, "executeValidator: semantic validation failed");
         return result;
     }
 
-    logDebugging(_logger, "Calculator validation completed successfully.");
+    logDebugging(_logger, "Validator validation completed successfully.");
 
     result.succeeded = true;
     return result;

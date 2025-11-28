@@ -1,5 +1,5 @@
-#ifndef CALCULATOR_HEADER
-#define CALCULATOR_HEADER
+#ifndef VALIDATOR_HEADER
+#define VALIDATOR_HEADER
 
 #include <stdbool.h>
 #include "../../support/type/ModuleDestructor.h"
@@ -11,9 +11,9 @@ typedef struct {
     int value;
 } ComputationResult;
 
-ModuleDestructor initializeCalculatorModule(void);
+ModuleDestructor initializeValidatorModule(void);
 
 
-ComputationResult executeCalculator(CompilerState *compilerState);
+ComputationResult executeValidator(CompilerState *compilerState);
 
 #endif
