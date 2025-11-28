@@ -121,6 +121,17 @@ CompilationStatus SelectionOrderLexemeAction() {
 	return status;
 }
 
+CompilationStatus IdentifierKeywordLexemeAction() {
+	Token * token = createToken(_lexicalAnalyzer, PROPERTY);
+	// Almacenar "identifier" como el valor del token
+	token->semanticValue->string = strdup("identifier");
+	_logTokenAction(__FUNCTION__, token);
+	CompilationStatus status = pushToken(_lexicalAnalyzer, token);
+	destroyToken(token);
+	_atLineStart = false;
+	return status;
+}
+
 CompilationStatus ComponentIdLexemeAction() {
 	if (_atLineStart && _indentStackSize > 1) {
 		CompilationStatus status = _emitDedents(0);

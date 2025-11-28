@@ -126,6 +126,7 @@ struct Program {
 	VariableList * variables;   // --- section variables
 	char ** selectionOrder;     // * selection_order: id1, id2, id3
 	int selectionOrderCount;    // cantidad de IDs en selection_order
+	char * identifier;          // * identifier: screen_name
 	ComponentList * components; // main component tree
 	
 	// Legacy field for backward compatibility

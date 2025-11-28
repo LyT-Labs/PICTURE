@@ -17,6 +17,7 @@
 
 extern CompilationStatus VariableDelimiterLexemeAction();
 extern CompilationStatus SelectionOrderLexemeAction();
+extern CompilationStatus IdentifierKeywordLexemeAction();
 extern CompilationStatus ComponentIdLexemeAction();
 extern CompilationStatus PropertyLexemeAction();
 extern CompilationStatus ColonLexemeAction();
@@ -44,7 +45,7 @@ extern CompilationStatus UnknownLexemeAction();
 identifier			[a-zA-Z_][a-zA-Z0-9_]*
 string				\"([^\"\\]|\\.)*\"
 number				[0-9]+
-builtin				(s|m|l|red|blue|green|white|black|center|left|right|top|bottom)
+builtin				(s|m|l|red|blue|green|white|black|center|left|right)
 whitespace			[ ]
 tab					\t
 
@@ -59,8 +60,9 @@ tab					\t
 
 %}
 
-"---"								{ return VariableDelimiterLexemeAction(); }
+"---"									{ return VariableDelimiterLexemeAction(); }
 "*"{whitespace}*"selection_order"	{ return SelectionOrderLexemeAction(); }
+"*"{whitespace}*"identifier"		{ return IdentifierKeywordLexemeAction(); }
 
 ^({tab}|{whitespace}{whitespace})+	{ return IndentLexemeAction(); }
 ^"#"{whitespace}*{identifier}		{ return ComponentIdLexemeAction(); }

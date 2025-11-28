@@ -75,6 +75,7 @@ static bool _validateProperty(const Property *prop, const VariableList *vars) {
         case PROP_BACKGROUND:
         case PROP_TEXT:
         case PROP_FONT_SIZE:
+        case PROP_COLOR:
         case PROP_ON_PRESS:
         case PROP_ALIGN:
         case PROP_ON_SELECT:

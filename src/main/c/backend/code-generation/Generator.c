@@ -1,6 +1,7 @@
 #include "Generator.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include "../../support/type/ModuleDestructor.h"
@@ -48,6 +49,9 @@
 /* ------------------------------------------------------------------ */
 /* Helpers de impresión                                               */
 /* ------------------------------------------------------------------ */
+
+// Variable estática para acceder a las variables globales durante generación
+static const VariableList *_globalVariables = NULL;
 
 static FILE *_get_output_stream(CompilerState *state)
 {
@@ -166,13 +170,16 @@ static void _emitVariables(const VariableList *vars, FILE *out)
 	while (v != NULL)
 	{
 		/*
-		 * Decisión simple: todas las variables del header se generan
-		 * como const char*.
-		 * value -> string con _emitValueAsCString.
+		 * Si el valor es builtin, NO emitimos la variable.
+		 * Se expandirá como macro en cada uso.
 		 */
-		fprintf(out, "const char *%s = ", v->name);
-		_emitValueAsCString(v->value, out);
-		fputs(";\n", out);
+		if (v->value && v->value->type != VALUE_BUILTIN)
+		{
+			// Solo emitir variables que NO son builtins
+			fprintf(out, "const char *%s = ", v->name);
+			_emitValueAsCString(v->value, out);
+			fputs(";\n", out);
+		}
 
 		v = v->next;
 	}
@@ -537,27 +544,80 @@ static void _emitPropertyValue(const Value *value, FILE *out)
 		fprintf(out, "%d", value->numberValue);
 		break;
 	case VALUE_IDENTIFIER:
-		// Para identifiers, asumimos que son callbacks o variables globales
+		// Buscar si el identifier es una variable global con valor builtin
+		if (_globalVariables)
+		{
+			const Variable *var = _globalVariables->first;
+			while (var)
+			{
+				if (strcmp(var->name, value->identifierValue) == 0)
+				{
+					// Encontrada: si es builtin, expandir directamente
+					if (var->value && var->value->type == VALUE_BUILTIN)
+					{
+						_emitPropertyValue(var->value, out);
+						return;
+					}
+					break;
+				}
+				var = var->next;
+			}
+		}
+		// Si no es variable builtin, es callback o variable normal
 		fprintf(out, "%s", value->identifierValue);
 		break;
 	case VALUE_BUILTIN:
-		// Para builtins: colores van a ColorSchema, tamaños son literales
-		if (strcmp(value->identifierValue, "s") == 0 ||
-		    strcmp(value->identifierValue, "m") == 0 ||
-		    strcmp(value->identifierValue, "l") == 0)
+		// Tamaños de texto: s=1, m=2, l=3
+		if (strcmp(value->identifierValue, "s") == 0)
 		{
-			// Tamaños de texto: emitir como número (1, 2, 3)
-			if (strcmp(value->identifierValue, "s") == 0)
-				fprintf(out, "1");
-			else if (strcmp(value->identifierValue, "m") == 0)
-				fprintf(out, "2");
-			else
-				fprintf(out, "3");
+			fprintf(out, "1");
+		}
+		else if (strcmp(value->identifierValue, "m") == 0)
+		{
+			fprintf(out, "2");
+		}
+		else if (strcmp(value->identifierValue, "l") == 0)
+		{
+			fprintf(out, "3");
+		}
+		// Colores: punteros a variables estáticas
+		else if (strcmp(value->identifierValue, "red") == 0)
+		{
+			fprintf(out, "&color_red");
+		}
+		else if (strcmp(value->identifierValue, "blue") == 0)
+		{
+			fprintf(out, "&color_blue");
+		}
+		else if (strcmp(value->identifierValue, "green") == 0)
+		{
+			fprintf(out, "&color_green");
+		}
+		else if (strcmp(value->identifierValue, "white") == 0)
+		{
+			fprintf(out, "&color_white");
+		}
+		else if (strcmp(value->identifierValue, "black") == 0)
+		{
+			fprintf(out, "&color_black");
+		}
+		// Alineamientos: enums
+		else if (strcmp(value->identifierValue, "left") == 0)
+		{
+			fprintf(out, "ALIGN_LEFT");
+		}
+		else if (strcmp(value->identifierValue, "center") == 0)
+		{
+			fprintf(out, "ALIGN_CENTER");
+		}
+		else if (strcmp(value->identifierValue, "right") == 0)
+		{
+			fprintf(out, "ALIGN_RIGHT");
 		}
 		else
 		{
-			// Colores: referenciar desde ColorSchema
-			fprintf(out, "&ColorSchema->%s", value->identifierValue);
+			// Fallback: NULL
+			fputs("NULL", out);
 		}
 		break;
 	default:
@@ -676,52 +736,112 @@ static void _emitSingleComponent(const Component *component, int myIndex, int ch
 }
 
 /**
- * Emite componentes recursivamente en pre-order
+ * Cola simple para BFS
  */
-static int _emitComponentsInOrder(const Component *component, int *nextIndex, FILE *out)
-{
-	if (!component)
-		return -1;
+typedef struct QueueNode {
+	const Component *component;
+	int index;
+	int childrenStartIndex;
+	struct QueueNode *next;
+} QueueNode;
+
+typedef struct {
+	QueueNode *head;
+	QueueNode *tail;
+} Queue;
+
+static void _queueInit(Queue *q) {
+	q->head = NULL;
+	q->tail = NULL;
+}
+
+static void _queuePush(Queue *q, const Component *comp, int index, int childrenStartIndex) {
+	QueueNode *node = (QueueNode*)malloc(sizeof(QueueNode));
+	node->component = comp;
+	node->index = index;
+	node->childrenStartIndex = childrenStartIndex;
+	node->next = NULL;
 	
-	int myIndex = (*nextIndex)++;
-	int childrenStartIndex = *nextIndex;
-	
-	// Primero emitir todos los hijos para que obtengan sus índices
-	if (component->children && component->children->first)
-	{
-		Component *child = component->children->first;
-		while (child)
-		{
-			_emitComponentsInOrder(child, nextIndex, out);
-			child = child->next;
-		}
+	if (q->tail) {
+		q->tail->next = node;
+	} else {
+		q->head = node;
 	}
+	q->tail = node;
+}
+
+static QueueNode* _queuePop(Queue *q) {
+	if (!q->head)
+		return NULL;
 	
-	// Ahora emitir este componente con los índices ya asignados
-	_emitSingleComponent(component, myIndex, childrenStartIndex, out);
+	QueueNode *node = q->head;
+	q->head = node->next;
+	if (!q->head)
+		q->tail = NULL;
 	
-	return myIndex;
+	return node;
+}
+
+static bool _queueIsEmpty(Queue *q) {
+	return q->head == NULL;
 }
 
 /**
- * Emite la función initialize_component_tree()
+ * Asigna índices a componentes en breadth-first order
+ * Retorna el número total de componentes procesados
  */
-static void _emitInitializeFunction(const ComponentList *clist, FILE *out)
+static int _assignComponentIndices(const Component *root, Queue *emitQueue)
 {
-	fputs("static void initialize_component_tree() {\n", out);
-
-	if (clist && clist->first)
+	if (!root)
+		return 0;
+	
+	Queue bfsQueue;
+	_queueInit(&bfsQueue);
+	
+	int nextIndex = 0;
+	
+	// Encolar el root
+	_queuePush(&bfsQueue, root, nextIndex++, -1);
+	
+	// BFS
+	while (!_queueIsEmpty(&bfsQueue))
 	{
-		int currentIndex = 0;
-		Component *comp = clist->first;
-		while (comp)
+		QueueNode *current = _queuePop(&bfsQueue);
+		const Component *comp = current->component;
+		int myIndex = current->index;
+		int myChildrenStart = nextIndex;
+		
+		// Encolar todos los hijos del nivel actual
+		if (comp->children && comp->children->first)
 		{
-			_emitComponentsInOrder(comp, &currentIndex, out);
-			comp = comp->next;
+			Component *child = comp->children->first;
+			while (child)
+			{
+				_queuePush(&bfsQueue, child, nextIndex++, -1);
+				child = child->next;
+			}
 		}
+		
+		// Guardar en la cola de emisión con el índice correcto de children
+		_queuePush(emitQueue, comp, myIndex, myChildrenStart);
+		
+		free(current);
 	}
+	
+	return nextIndex;
+}
 
-	fputs("}\n\n", out);
+/**
+ * Emite componentes en el orden determinado por la cola
+ */
+static void _emitComponentsFromQueue(Queue *emitQueue, FILE *out)
+{
+	while (!_queueIsEmpty(emitQueue))
+	{
+		QueueNode *node = _queuePop(emitQueue);
+		_emitSingleComponent(node->component, node->index, node->childrenStartIndex, out);
+		free(node);
+	}
 }
 
 /**
@@ -821,6 +941,9 @@ void Generator_generate(const Program *program, CompilerState *state)
 		return;
 	}
 
+	// Inicializar variable estática para expansión de macros builtin
+	_globalVariables = program->variables;
+
 	FILE *out = _get_output_stream(state);
 
 	/* Headers */
@@ -828,10 +951,24 @@ void Generator_generate(const Program *program, CompilerState *state)
 	fputs("#include <syscalls/syscallCodes.h>\n", out);
 	fputs("#include <libs/events.h>\n", out);
 	fputs("#include <colors.h>\n", out);
-	fputs("#include <themes.h>\n\n", out);
+	fputs("#include <themes.h>\n", out);
+	
+	/* Include específico del identifier si existe */
+	if (program->identifier) {
+		fprintf(out, "#include <%s.h>\n", program->identifier);
+	}
+	fputc('\n', out);
 
 	/* Forward declarations */
 	fputs("extern uint64_t syscall(uint64_t syscall, uint64_t arg1, uint64_t arg2, uint64_t arg3);\n\n", out);
+
+	/* Variables estáticas para colores literales */
+	fputs("// Colores builtin\n", out);
+	fputs("static uint32_t color_red = 0xFF0000;\n", out);
+	fputs("static uint32_t color_blue = 0x0000FF;\n", out);
+	fputs("static uint32_t color_green = 0x00FF00;\n", out);
+	fputs("static uint32_t color_white = 0xFFFFFF;\n", out);
+	fputs("static uint32_t color_black = 0x000000;\n\n", out);
 
 	/* Emitir struct ComponentRegistry */
 	if (program->components && program->components->first)
@@ -874,14 +1011,19 @@ void Generator_generate(const Program *program, CompilerState *state)
 	Component *rootComponent = NULL;
 	if (program->components && program->components->first)
 	{
-		int currentIndex = 0;
+		rootComponent = program->components->first; // El primer componente es el root
+		
+		Queue emitQueue;
+		_queueInit(&emitQueue);
+		
 		Component *comp = program->components->first;
-		rootComponent = comp; // El primer componente es el root
 		while (comp)
 		{
-			_emitComponentsInOrder(comp, &currentIndex, out);
+			_assignComponentIndices(comp, &emitQueue);
 			comp = comp->next;
 		}
+		
+		_emitComponentsFromQueue(&emitQueue, out);
 	}
 	
 	/* Inicialización del selection order */
@@ -889,8 +1031,18 @@ void Generator_generate(const Program *program, CompilerState *state)
 	
 	fputs("}\n\n", out);
 
-	/* TODO: Emitir función main */
-	fputs("// TODO: implementar función main\n", out);
+	/* Emitir función main usando el identifier */
+	if (program->identifier) {
+		fprintf(out, "static void %s_main() {\n", program->identifier);
+		fputs("    enableDoubleBuffering(); // Habilitar double buffering para evitar flickering\n\n", out);
+		fputs("    initialize_component_tree();\n", out);
+		fputs("  \n", out);
+		fprintf(out, "   %s_main_loop(&gui_context, &components, &component_array);\n\n", program->identifier);
+		fputs("    disableDoubleBuffering(); // Deshabilitar double buffering al salir porque la shell no lo usa\n", out);
+		fputs("}\n", out);
+	} else {
+		fputs("// No identifier specified, skipping main function generation\n", out);
+	}
 }
 
 /* ------------------------------------------------------------------ */

@@ -313,6 +313,7 @@ Program * ProgramSemanticAction(VariableList * variables, ComponentList * compon
 	program->components = components;
 	program->selectionOrder = NULL;
 	program->selectionOrderCount = 0;
+	program->identifier = NULL;
 	
 	// Extraer selection_order de las variables si existe
 	if (variables && variables->first) {
@@ -346,6 +347,37 @@ Program * ProgramSemanticAction(VariableList * variables, ComponentList * compon
 				}
 				
 				// Remover selection_order de la lista de variables
+				if (prev) {
+					prev->next = var->next;
+				} else {
+					variables->first = var->next;
+				}
+				if (variables->last == var) {
+					variables->last = prev;
+				}
+				
+				Variable * toDelete = var;
+				var = var->next;
+				destroyVariable(toDelete);
+				continue;
+			}
+			prev = var;
+			var = var->next;
+		}
+	}
+	
+	// Extraer identifier de las variables si existe
+	if (variables && variables->first) {
+		Variable * var = variables->first;
+		Variable * prev = NULL;
+		while (var) {
+			if (var->name && strcmp(var->name, "identifier") == 0) {
+				// Encontramos identifier, extraer el valor
+				if (var->value && var->value->identifierValue) {
+					program->identifier = strdup(var->value->identifierValue);
+				}
+				
+				// Remover identifier de la lista de variables
 				if (prev) {
 					prev->next = var->next;
 				} else {

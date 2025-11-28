@@ -133,6 +133,11 @@ void destroyProgram(Program * program) {
 			free(program->selectionOrder);
 		}
 		
+		// Liberar identifier
+		if (program->identifier) {
+			free(program->identifier);
+		}
+		
 		destroyExpression(program->expression); // Legacy field
 		free(program);
 	}

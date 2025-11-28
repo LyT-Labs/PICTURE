@@ -1,0 +1,65 @@
+// Componentes anidados con selection order
+---
+- mainColor: blue
+- customString: "Nested with Selection Order"
+* selection_order: btn1, btn2, input1
+* identifier: home_screen
+---
+
+# mainContainer
+	- background: white
+	- width: 400
+	- height: 300
+
+	# topPanel
+		- x: 10
+		- y: 10
+		- width: 380
+		- height: 100
+		- text: customString
+
+		# btn1
+			- text: "First Button"
+			- font_size: s
+			- color: mainColor
+			- on_press: handle_first
+			- on_focus_gain: on_focus
+			- on_focus_lost: on_focus
+
+	# middlePanel
+		- x: 10
+		- y: 120
+		- width: 380
+		- height: 80
+
+		# btn2
+			- text: "Second Button"
+			- on_press: handle_second
+			- on_focus_gain: on_focus
+			- on_focus_lost: on_focus
+
+			# label2
+				- text: "Non-selectable label"
+				- color: mainColor
+
+		# btn3
+			- text: "Second Button"
+			- on_press: handle_second
+			- on_focus_gain: on_focus
+			- on_focus_lost: on_focus
+
+	# bottomPanel
+		- x: 10
+		- y: 210
+		- width: 380
+		- height: 80
+
+		# input1
+			- text: "Type here..."
+			- on_keypress: handle_input
+			- on_focus_gain: on_focus
+			- on_focus_lost: on_focus
+
+		# label1
+			- text: "Non-selectable label"
+			- color: mainColor
