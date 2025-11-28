@@ -1,6 +1,6 @@
 # Minimum required version fo CMake. Can be modified at your own risk.
 # @see https://cmake.org/download/
-cmake_minimum_required(VERSION 3.28.3)
+cmake_minimum_required(VERSION 3.22.1)
 
 # Name of the project and language to use (C, in this case).
 project(Flex-Bison-Compiler C)
@@ -45,6 +45,7 @@ if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
 		src/main/c/support/configuration/Environment.c
 		src/main/c/support/language/String.c
 		src/main/c/support/logging/Logger.c
+		src/main/c/runtime/ui_runtime.c
 		# Add more *.c files if needed (otherwise, they won't be compiled).
 		# ...
 	)

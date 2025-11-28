@@ -2,19 +2,20 @@
 #define GENERATOR_HEADER
 
 #include "../../frontend/syntactic-analysis/AbstractSyntaxTree.h"
-#include "../../support/language/String.h"
-#include "../../support/logging/Logger.h"
 #include "../../support/type/CompilerState.h"
 #include "../../support/type/ModuleDestructor.h"
-#include <stdarg.h>
-#include <stdio.h>
-
-/** Initialize module's internal state. */
-ModuleDestructor initializeGeneratorModule();
 
 /**
- * Generates the final output using the current compiler state.
+ * Genera código C a partir del AST del programa PICTURE.
+ *
+ * Por ahora escribe el código a stdout
  */
-void executeGenerator(CompilerState * compilerState);
+void Generator_generate(const Program *program, CompilerState *state);
+
+// Inicializa el módulo del generador.
+ModuleDestructor initializeGeneratorModule(void);
+
+//Ejecuta el generador con el estado del compilador.
+void executeGenerator(CompilerState *state);
 
 #endif
