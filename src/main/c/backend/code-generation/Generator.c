@@ -871,32 +871,49 @@ static int _countSelectableComponents(const Component *component)
 }
 
 /**
- * Emite el array component_selection_order basado en selectionOrder del programa
+ * Emite el array component_selection_order (siempre, incluso si está vacío)
  */
 static void _emitSelectionOrderArray(const Program *program, int selectableCount, FILE *out)
 {
-	if (selectableCount == 0 || !program->selectionOrder)
-		return;
-		
-	fprintf(out, "static Component * component_selection_order[%d];\n\n", selectableCount);
+	// Determinar tamaño: si hay selection_order usar ese count, sino 0
+	int arraySize = (program->selectionOrder && program->selectionOrderCount > 0) 
+	                ? program->selectionOrderCount 
+	                : 0;
+	
+	// Si el tamaño es 0, declarar array vacío con notación especial de C
+	if (arraySize == 0)
+	{
+		fputs("static Component * component_selection_order[1]; // Vacío, pero necesario para compilar\n\n", out);
+	}
+	else
+	{
+		fprintf(out, "static Component * component_selection_order[%d];\n\n", arraySize);
+	}
 }
 
 /**
- * Emite la inicialización del selection order dentro de initialize_component_tree
+ * Emite la inicialización del selection order y gui_context dentro de initialize_component_tree
  */
 static void _emitSelectionOrderInit(const Program *program, const Component *rootComponent, FILE *out)
 {
-	if (!program->selectionOrder || program->selectionOrderCount == 0)
-		return;
-		
-	fputs("    // Indicar el orden de selección\n", out);
-	for (int i = 0; i < program->selectionOrderCount; i++)
+	// Si hay selection_order, emitir la inicialización del array
+	if (program->selectionOrder && program->selectionOrderCount > 0)
 	{
-		fprintf(out, "    component_selection_order[%d] = components.%s;\n", 
-		        i, program->selectionOrder[i]);
+		fputs("    // Indicar el orden de selección\n", out);
+		for (int i = 0; i < program->selectionOrderCount; i++)
+		{
+			fprintf(out, "    component_selection_order[%d] = components.%s;\n", 
+			        i, program->selectionOrder[i]);
+		}
+		fprintf(out, "    int selectable_count = %d;\n\n", program->selectionOrderCount);
 	}
-	fprintf(out, "    int selectable_count = %d;\n\n", program->selectionOrderCount);
+	else
+	{
+		// Sin selection_order, contar componentes selectables
+		fputs("    int selectable_count = 0;\n\n", out);
+	}
 	
+	// SIEMPRE inicializar el contexto de GUI
 	fputs("    // Inicializar contexto de GUI\n", out);
 	if (rootComponent && rootComponent->id)
 	{
@@ -972,13 +989,13 @@ void Generator_generate(const Program *program, CompilerState *state)
 	fputs("static ComponentRegistry components;\n", out);
 	fputs("static GuiContext gui_context;\n", out);
 	
-	/* Array de selection order si existe */
+	/* Array de selection order (siempre presente, incluso si vacío) */
 	int selectableCount = 0;
 	if (program->selectionOrder && program->selectionOrderCount > 0)
 	{
 		selectableCount = program->selectionOrderCount;
-		_emitSelectionOrderArray(program, selectableCount, out);
 	}
+	_emitSelectionOrderArray(program, selectableCount, out);
 	fputc('\n', out);
 
 	/* Variables globales del header --- */
