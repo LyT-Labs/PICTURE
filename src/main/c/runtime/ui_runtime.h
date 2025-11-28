@@ -22,8 +22,9 @@ void ui_set_x(UIComponent c, int value);
 void ui_set_y(UIComponent c, int value);
 
 void ui_set_on_press(UIComponent c, void (*fn)(void));
-void ui_set_on_select(UIComponent c, void (*fn)(void));
-void ui_set_on_keypress(UIComponent c, void (*fn)(int));
+void ui_set_on_focus_gain(UIComponent c, void (*fn)(void));
+void ui_set_on_focus_lost(UIComponent c, void (*fn)(int));
+
 
 void ui_run(void);
 

@@ -61,6 +61,14 @@ void ui_set_on_keypress(UIComponent c, void (*fn)(int)) {
     printf("[UI] %s.on_keypress = <fn>\n", c.id);
 }
 
+void ui_set_on_focus_gain(UIComponent c, void (*fn)(void)) {
+    printf("[UI] %s.on_focus_gain = <fn>\n", c.id);
+}
+
+void ui_set_on_focus_lost(UIComponent c, void (*fn)(int)) {
+    printf("[UI] %s.on_focus_lost = <fn>\n", c.id);
+}
+
 void ui_run(void) {
     printf("[UI] run loop\n");
 }

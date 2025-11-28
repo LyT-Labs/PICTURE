@@ -79,6 +79,8 @@ static bool _validateProperty(const Property *prop, const VariableList *vars) {
         case PROP_ALIGN:
         case PROP_ON_SELECT:
         case PROP_ON_KEYPRESS:
+        case PROP_ON_FOCUS_GAIN:
+        case PROP_ON_FOCUS_LOST:
             return true;
 
         case PROP_WIDTH:
@@ -212,8 +214,7 @@ ComputationResult executeCalculator(CompilerState *compilerState) {
         return result;
     }
 
-    logDebugging(_logger, "Generating C code...");
-    Generator_generate(program, compilerState);
+    logDebugging(_logger, "Calculator validation completed successfully.");
 
     result.succeeded = true;
     return result;

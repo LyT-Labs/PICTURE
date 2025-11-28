@@ -15,7 +15,7 @@ void Generator_generate(const Program *program, CompilerState *state);
 // Inicializa el módulo del generador.
 ModuleDestructor initializeGeneratorModule(void);
 
-//Ejecuta el generador con el estado del compilador.
+// Ejecuta el generador con el estado del compilador.
 void executeGenerator(CompilerState *state);
 
 #endif

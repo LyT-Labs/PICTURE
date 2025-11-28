@@ -15,7 +15,7 @@ static bool _hasSemanticError = false;
 /* Valid property names catalog */
 static const char * VALID_PROPERTIES[] = {
 	"background", "text", "font_size", "color", "on_press", "on_select", 
-	"on_keypress", "align", "width", "height", "x", "y", NULL
+	"on_keypress", "on_focus_gain", "on_focus_lost", "align", "width", "height", "x", "y", NULL
 };
 
 /* Helper function to check if property is valid */
@@ -157,6 +157,10 @@ Property * PropertySemanticAction(const char * key, Value * value) {
 		property->type = PROP_ON_SELECT;
 	} else if (strcmp(key, "on_keypress") == 0) {
 		property->type = PROP_ON_KEYPRESS;
+	} else if (strcmp(key, "on_focus_gain") == 0) {
+		property->type = PROP_ON_FOCUS_GAIN;
+	} else if (strcmp(key, "on_focus_lost") == 0) {
+		property->type = PROP_ON_FOCUS_LOST;
 	}
 	
 	return property;

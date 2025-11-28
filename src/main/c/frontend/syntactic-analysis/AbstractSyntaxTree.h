@@ -72,7 +72,9 @@ enum PropertyType {
 	PROP_X,
 	PROP_Y,
 	PROP_ON_SELECT,
-	PROP_ON_KEYPRESS
+	PROP_ON_KEYPRESS,
+	PROP_ON_FOCUS_GAIN,
+	PROP_ON_FOCUS_LOST
 };
 
 struct Value {

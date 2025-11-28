@@ -1,6 +1,7 @@
 #include "ui_runtime.h"
 
-int main(void) {
+int main(void)
+{
     ui_init();
 
     UIComponent main = ui_create_root("main");
