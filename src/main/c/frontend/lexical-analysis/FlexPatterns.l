@@ -16,9 +16,11 @@
  */
 
 extern CompilationStatus VariableDelimiterLexemeAction();
+extern CompilationStatus SelectionOrderLexemeAction();
 extern CompilationStatus ComponentIdLexemeAction();
 extern CompilationStatus PropertyLexemeAction();
 extern CompilationStatus ColonLexemeAction();
+extern CompilationStatus CommaLexemeAction();
 extern CompilationStatus StringLexemeAction();
 extern CompilationStatus NumberLexemeAction();
 extern CompilationStatus IdentifierLexemeAction();
@@ -58,6 +60,7 @@ tab					\t
 %}
 
 "---"								{ return VariableDelimiterLexemeAction(); }
+"*"{whitespace}*"selection_order"	{ return SelectionOrderLexemeAction(); }
 
 ^({tab}|{whitespace}{whitespace})+	{ return IndentLexemeAction(); }
 ^"#"{whitespace}*{identifier}		{ return ComponentIdLexemeAction(); }
@@ -66,6 +69,7 @@ tab					\t
 "#"{whitespace}*{identifier}		{ return ComponentIdLexemeAction(); }
 "-"{whitespace}*{identifier}		{ return PropertyLexemeAction(); }
 ":"									{ return ColonLexemeAction(); }
+","									{ return CommaLexemeAction(); }
 
 {string}							{ return StringLexemeAction(); }
 {number}							{ return NumberLexemeAction(); }

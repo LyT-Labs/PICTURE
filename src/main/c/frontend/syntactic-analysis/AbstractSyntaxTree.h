@@ -65,6 +65,7 @@ enum PropertyType {
 	PROP_BACKGROUND,
 	PROP_TEXT,
 	PROP_FONT_SIZE,
+	PROP_COLOR,
 	PROP_ON_PRESS,
 	PROP_ALIGN,
 	PROP_WIDTH,
@@ -123,6 +124,8 @@ struct VariableList {
 
 struct Program {
 	VariableList * variables;   // --- section variables
+	char ** selectionOrder;     // * selection_order: id1, id2, id3
+	int selectionOrderCount;    // cantidad de IDs en selection_order
 	ComponentList * components; // main component tree
 	
 	// Legacy field for backward compatibility

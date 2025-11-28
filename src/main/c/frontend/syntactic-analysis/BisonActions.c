@@ -117,6 +117,36 @@ Value * BuiltinValueSemanticAction(const char * builtinValue) {
 	return value;
 }
 
+Value * AppendIdentifierSemanticAction(Value * list, const char * identifier) {
+	_logSyntacticAnalyzerAction(__FUNCTION__);
+	// list->identifierValue contiene "id1" o "id1,id2"
+	// identifier es el nuevo ID a agregar
+	// resultado: "id1,id2,id3"
+	
+	if (!list || !identifier) {
+		return list;
+	}
+	
+	size_t oldLen = list->identifierValue ? strlen(list->identifierValue) : 0;
+	size_t newLen = strlen(identifier);
+	size_t totalLen = oldLen + 1 + newLen + 1; // old + ',' + new + '\0'
+	
+	char * newList = (char *)malloc(totalLen);
+	if (oldLen > 0) {
+		strcpy(newList, list->identifierValue);
+		strcat(newList, ",");
+		strcat(newList, identifier);
+		free(list->identifierValue);
+	} else {
+		strcpy(newList, identifier);
+	}
+	
+	list->identifierValue = newList;
+	free((char *)identifier); // Liberar el string del token
+	
+	return list;
+}
+
 /* PROPERTY ACTIONS */
 
 Property * PropertySemanticAction(const char * key, Value * value) {
@@ -141,6 +171,8 @@ Property * PropertySemanticAction(const char * key, Value * value) {
 		property->type = PROP_TEXT;
 	} else if (strcmp(key, "font_size") == 0) {
 		property->type = PROP_FONT_SIZE;
+	} else if (strcmp(key, "color") == 0) {
+		property->type = PROP_COLOR;
 	} else if (strcmp(key, "on_press") == 0) {
 		property->type = PROP_ON_PRESS;
 	} else if (strcmp(key, "align") == 0) {
@@ -279,6 +311,59 @@ Program * ProgramSemanticAction(VariableList * variables, ComponentList * compon
 	Program * program = calloc(1, sizeof(Program));
 	program->variables = variables;
 	program->components = components;
+	program->selectionOrder = NULL;
+	program->selectionOrderCount = 0;
+	
+	// Extraer selection_order de las variables si existe
+	if (variables && variables->first) {
+		Variable * var = variables->first;
+		Variable * prev = NULL;
+		while (var) {
+			if (var->name && strcmp(var->name, "selection_order") == 0) {
+				// Encontramos selection_order, parsear la lista de IDs
+				if (var->value && var->value->identifierValue) {
+					// Contar cuántos IDs hay (separados por comas)
+					int count = 1;
+					for (char * p = var->value->identifierValue; *p; p++) {
+						if (*p == ',') count++;
+					}
+					
+					// Alocar array de strings
+					program->selectionOrder = (char **)calloc(count, sizeof(char *));
+					program->selectionOrderCount = count;
+					
+					// Parsear los IDs
+					char * copy = strdup(var->value->identifierValue);
+					char * token = strtok(copy, ",");
+					int i = 0;
+					while (token && i < count) {
+						// Trim espacios
+						while (*token == ' ') token++;
+						program->selectionOrder[i++] = strdup(token);
+						token = strtok(NULL, ",");
+					}
+					free(copy);
+				}
+				
+				// Remover selection_order de la lista de variables
+				if (prev) {
+					prev->next = var->next;
+				} else {
+					variables->first = var->next;
+				}
+				if (variables->last == var) {
+					variables->last = prev;
+				}
+				
+				Variable * toDelete = var;
+				var = var->next;
+				destroyVariable(toDelete);
+				continue;
+			}
+			prev = var;
+			var = var->next;
+		}
+	}
 	
 	Constant * dummyConstant = calloc(1, sizeof(Constant));
 	dummyConstant->value = 0;

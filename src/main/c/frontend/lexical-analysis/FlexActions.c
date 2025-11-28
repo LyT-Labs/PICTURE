@@ -110,6 +110,17 @@ CompilationStatus VariableDelimiterLexemeAction() {
 	return status;
 }
 
+CompilationStatus SelectionOrderLexemeAction() {
+	Token * token = createToken(_lexicalAnalyzer, PROPERTY);
+	// Almacenar "selection_order" como el valor del token
+	token->semanticValue->string = strdup("selection_order");
+	_logTokenAction(__FUNCTION__, token);
+	CompilationStatus status = pushToken(_lexicalAnalyzer, token);
+	destroyToken(token);
+	_atLineStart = false;
+	return status;
+}
+
 CompilationStatus ComponentIdLexemeAction() {
 	if (_atLineStart && _indentStackSize > 1) {
 		CompilationStatus status = _emitDedents(0);
@@ -158,6 +169,15 @@ CompilationStatus PropertyLexemeAction() {
 
 CompilationStatus ColonLexemeAction() {
 	Token * token = createToken(_lexicalAnalyzer, COLON);
+	_logTokenAction(__FUNCTION__, token);
+	CompilationStatus status = pushToken(_lexicalAnalyzer, token);
+	destroyToken(token);
+	_atLineStart = false;
+	return status;
+}
+
+CompilationStatus CommaLexemeAction() {
+	Token * token = createToken(_lexicalAnalyzer, COMMA);
 	_logTokenAction(__FUNCTION__, token);
 	CompilationStatus status = pushToken(_lexicalAnalyzer, token);
 	destroyToken(token);

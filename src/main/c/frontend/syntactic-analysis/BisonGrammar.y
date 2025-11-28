@@ -77,6 +77,7 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %token <string> COMPONENT_ID         // #identifier
 %token <string> PROPERTY             // - property_name
 %token <token> COLON                 // :
+%token <token> COMMA                 // ,
 %token <string> STRING               // "text"
 %token <integer> NUMBER              // 123
 %token <string> IDENTIFIER           // variable_name
@@ -91,6 +92,7 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 
 /** Non-terminals. */
 %type <value> value
+%type <value> id_list
 %type <property> property
 %type <propertyList> property_list
 %type <component> component
@@ -133,6 +135,11 @@ variable_list: variable newlines							{ $$ = CreateVariableListSemanticAction()
 	;
 
 variable: PROPERTY COLON value								{ $$ = VariableSemanticAction($1, $3); }
+	| PROPERTY COLON id_list							{ $$ = VariableSemanticAction($1, $3); }
+	;
+
+id_list: IDENTIFIER										{ $$ = IdentifierValueSemanticAction($1); }
+	| id_list COMMA IDENTIFIER							{ $$ = AppendIdentifierSemanticAction($1, $3); }
 	;
 
 component_list: component									{ if (!$1) YYERROR; $$ = CreateComponentListSemanticAction(); $$ = AddComponentSemanticAction($$, $1); }

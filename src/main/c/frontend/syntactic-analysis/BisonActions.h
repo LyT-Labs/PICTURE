@@ -21,6 +21,7 @@ Value * StringValueSemanticAction(const char * stringValue);
 Value * NumberValueSemanticAction(const int numberValue);
 Value * IdentifierValueSemanticAction(const char * identifierValue);
 Value * BuiltinValueSemanticAction(const char * builtinValue);
+Value * AppendIdentifierSemanticAction(Value * list, const char * identifier);
 
 // Property actions
 Property * PropertySemanticAction(const char * key, Value * value);

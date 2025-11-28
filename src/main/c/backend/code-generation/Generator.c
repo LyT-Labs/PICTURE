@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include "../../support/type/ModuleDestructor.h"
 
 /*
@@ -402,6 +403,414 @@ static void _emitComponents(const ComponentList *clist, FILE *out, int indentLev
 }
 
 /* ------------------------------------------------------------------ */
+/* Funciones auxiliares para el nuevo formato con arrays estáticos   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Cuenta la cantidad total de componentes en el árbol
+ */
+static int _countComponents(const Component *component)
+{
+	if (!component)
+		return 0;
+
+	int count = 1; // Este componente
+	
+	// Contar hijos recursivamente
+	if (component->children && component->children->first)
+	{
+		Component *child = component->children->first;
+		while (child)
+		{
+			count += _countComponents(child);
+			child = child->next;
+		}
+	}
+	
+	return count;
+}
+
+/**
+ * Cuenta cuántos hijos directos tiene un componente
+ */
+static int _countDirectChildren(const Component *component)
+{
+	if (!component || !component->children)
+		return 0;
+
+	int count = 0;
+	Component *child = component->children->first;
+	while (child)
+	{
+		count++;
+		child = child->next;
+	}
+	return count;
+}
+
+/**
+ * Emite los campos del struct ComponentRegistry de forma recursiva
+ */
+static void _emitRegistryFields(const Component *component, FILE *out)
+{
+	if (!component)
+		return;
+
+	fprintf(out, "    Component* %s;\n", component->id);
+
+	// Recursión en hijos
+	if (component->children && component->children->first)
+	{
+		Component *child = component->children->first;
+		while (child)
+		{
+			_emitRegistryFields(child, out);
+			child = child->next;
+		}
+	}
+}
+
+/**
+ * Emite el struct ComponentRegistry con punteros a todos los componentes
+ */
+static void _emitComponentRegistry(const ComponentList *clist, FILE *out)
+{
+	fputs("typedef struct {\n", out);
+
+	// Emitir campo para cada componente
+	Component *comp = clist->first;
+	while (comp)
+	{
+		_emitRegistryFields(comp, out);
+		comp = comp->next;
+	}
+
+	fputs("} ComponentRegistry;\n\n", out);
+}
+
+/**
+ * Asigna índices a componentes recursivamente en pre-order
+ */
+static int _assignIndices(Component *component, int startIndex)
+{
+	if (!component)
+		return startIndex;
+		
+	int currentIndex = startIndex;
+	
+	// Este componente toma el índice actual
+	// (guardamos el índice en un campo temporal - pero no tenemos uno,
+	// así que vamos a emitir directamente en la segunda pasada)
+	currentIndex++;
+	
+	// Los hijos toman los siguientes índices
+	if (component->children && component->children->first)
+	{
+		Component *child = component->children->first;
+		while (child)
+		{
+			currentIndex = _assignIndices(child, currentIndex);
+			child = child->next;
+		}
+	}
+	
+	return currentIndex;
+}
+
+/**
+ * Emite el valor de una propiedad como parámetro del COMPONENT_CONSTRUCTOR
+ */
+static void _emitPropertyValue(const Value *value, FILE *out)
+{
+	if (!value)
+	{
+		fputs("NULL", out);
+		return;
+	}
+
+	switch (value->type)
+	{
+	case VALUE_STRING:
+		_emitStringLiteral(out, value->stringValue);
+		break;
+	case VALUE_NUMBER:
+		fprintf(out, "%d", value->numberValue);
+		break;
+	case VALUE_IDENTIFIER:
+		// Para identifiers, asumimos que son callbacks o variables globales
+		fprintf(out, "%s", value->identifierValue);
+		break;
+	case VALUE_BUILTIN:
+		// Para builtins: colores van a ColorSchema, tamaños son literales
+		if (strcmp(value->identifierValue, "s") == 0 ||
+		    strcmp(value->identifierValue, "m") == 0 ||
+		    strcmp(value->identifierValue, "l") == 0)
+		{
+			// Tamaños de texto: emitir como número (1, 2, 3)
+			if (strcmp(value->identifierValue, "s") == 0)
+				fprintf(out, "1");
+			else if (strcmp(value->identifierValue, "m") == 0)
+				fprintf(out, "2");
+			else
+				fprintf(out, "3");
+		}
+		else
+		{
+			// Colores: referenciar desde ColorSchema
+			fprintf(out, "&ColorSchema->%s", value->identifierValue);
+		}
+		break;
+	default:
+		fputs("NULL", out);
+		break;
+	}
+}
+
+/**
+ * Emite la declaración de un componente en el array
+ */
+static void _emitSingleComponent(const Component *component, int myIndex, int childrenStartIndex, FILE *out)
+{
+	if (!component)
+		return;
+
+	// Comentario con el ID del componente
+	fprintf(out, "    // %s\n", component->id);
+	fprintf(out, "    component_array[%d] = COMPONENT_CONSTRUCTOR(\n", myIndex);
+
+	// Emitir propiedades del componente desde el AST
+	if (component->properties && component->properties->first)
+	{
+		Property *prop = component->properties->first;
+		while (prop)
+		{
+			switch (prop->type)
+			{
+			case PROP_BACKGROUND:
+				fputs("        .bg_color = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_TEXT:
+				fputs("        .text = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_FONT_SIZE:
+				fputs("        .text_size = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_COLOR:
+				fputs("        .text_color = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_ALIGN:
+				fputs("        .alignment = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_WIDTH:
+				fputs("        .width = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_HEIGHT:
+				fputs("        .height = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_X:
+				fputs("        .x_position = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_Y:
+				fputs("        .y_position = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_ON_PRESS:
+				fputs("        .on_press = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_ON_SELECT:
+				fputs("        .on_select = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_ON_KEYPRESS:
+				fputs("        .on_key_press = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_ON_FOCUS_GAIN:
+				fputs("        .on_focus_gain = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_ON_FOCUS_LOST:
+				fputs("        .on_focus_lost = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			default:
+				break;
+			}
+			prop = prop->next;
+		}
+	}
+
+	// Indicar cantidad de hijos si los tiene
+	int childCount = _countDirectChildren(component);
+	if (childCount > 0)
+	{
+		fprintf(out, "        .children_count = %d,\n", childCount);
+		fprintf(out, "        .children = &component_array[%d],\n", childrenStartIndex);
+	}
+
+	fputs("    );\n", out);
+	fprintf(out, "    components.%s = &component_array[%d];\n\n", component->id, myIndex);
+}
+
+/**
+ * Emite componentes recursivamente en pre-order
+ */
+static int _emitComponentsInOrder(const Component *component, int *nextIndex, FILE *out)
+{
+	if (!component)
+		return -1;
+	
+	int myIndex = (*nextIndex)++;
+	int childrenStartIndex = *nextIndex;
+	
+	// Primero emitir todos los hijos para que obtengan sus índices
+	if (component->children && component->children->first)
+	{
+		Component *child = component->children->first;
+		while (child)
+		{
+			_emitComponentsInOrder(child, nextIndex, out);
+			child = child->next;
+		}
+	}
+	
+	// Ahora emitir este componente con los índices ya asignados
+	_emitSingleComponent(component, myIndex, childrenStartIndex, out);
+	
+	return myIndex;
+}
+
+/**
+ * Emite la función initialize_component_tree()
+ */
+static void _emitInitializeFunction(const ComponentList *clist, FILE *out)
+{
+	fputs("static void initialize_component_tree() {\n", out);
+
+	if (clist && clist->first)
+	{
+		int currentIndex = 0;
+		Component *comp = clist->first;
+		while (comp)
+		{
+			_emitComponentsInOrder(comp, &currentIndex, out);
+			comp = comp->next;
+		}
+	}
+
+	fputs("}\n\n", out);
+}
+
+/**
+ * Verifica si un componente tiene propiedades selectables
+ */
+static bool _isSelectable(const Component *component)
+{
+	if (!component || !component->properties)
+		return false;
+		
+	Property *prop = component->properties->first;
+	while (prop)
+	{
+		if (prop->type == PROP_ON_PRESS ||
+		    prop->type == PROP_ON_SELECT ||
+		    prop->type == PROP_ON_KEYPRESS ||
+		    prop->type == PROP_ON_FOCUS_GAIN ||
+		    prop->type == PROP_ON_FOCUS_LOST)
+		{
+			return true;
+		}
+		prop = prop->next;
+	}
+	return false;
+}
+
+/**
+ * Cuenta componentes selectables recursivamente
+ */
+static int _countSelectableComponents(const Component *component)
+{
+	if (!component)
+		return 0;
+		
+	int count = _isSelectable(component) ? 1 : 0;
+	
+	if (component->children && component->children->first)
+	{
+		Component *child = component->children->first;
+		while (child)
+		{
+			count += _countSelectableComponents(child);
+			child = child->next;
+		}
+	}
+	
+	return count;
+}
+
+/**
+ * Emite el array component_selection_order basado en selectionOrder del programa
+ */
+static void _emitSelectionOrderArray(const Program *program, int selectableCount, FILE *out)
+{
+	if (selectableCount == 0 || !program->selectionOrder)
+		return;
+		
+	fprintf(out, "static Component * component_selection_order[%d];\n\n", selectableCount);
+}
+
+/**
+ * Emite la inicialización del selection order dentro de initialize_component_tree
+ */
+static void _emitSelectionOrderInit(const Program *program, const Component *rootComponent, FILE *out)
+{
+	if (!program->selectionOrder || program->selectionOrderCount == 0)
+		return;
+		
+	fputs("    // Indicar el orden de selección\n", out);
+	for (int i = 0; i < program->selectionOrderCount; i++)
+	{
+		fprintf(out, "    component_selection_order[%d] = components.%s;\n", 
+		        i, program->selectionOrder[i]);
+	}
+	fprintf(out, "    int selectable_count = %d;\n\n", program->selectionOrderCount);
+	
+	fputs("    // Inicializar contexto de GUI\n", out);
+	if (rootComponent && rootComponent->id)
+	{
+		fprintf(out, "    gui_context = initialize_gui_context(components.%s, component_selection_order, selectable_count);\n", 
+		        rootComponent->id);
+	}
+	else
+	{
+		fputs("    gui_context = initialize_gui_context(&component_array[0], component_selection_order, selectable_count);\n", out);
+	}
+}
+
+/* ------------------------------------------------------------------ */
 /* Entrada principal del generador                                    */
 /* ------------------------------------------------------------------ */
 
@@ -414,24 +823,74 @@ void Generator_generate(const Program *program, CompilerState *state)
 
 	FILE *out = _get_output_stream(state);
 
-	/* Header */
-	fputs("#include \"ui_runtime.h\"\n\n", out);
+	/* Headers */
+	fputs("#include <libs/PictureRuntimeLib.h>\n", out);
+	fputs("#include <syscalls/syscallCodes.h>\n", out);
+	fputs("#include <libs/events.h>\n", out);
+	fputs("#include <colors.h>\n", out);
+	fputs("#include <themes.h>\n\n", out);
 
-	/* Variables del header --- */
+	/* Forward declarations */
+	fputs("extern uint64_t syscall(uint64_t syscall, uint64_t arg1, uint64_t arg2, uint64_t arg3);\n\n", out);
+
+	/* Emitir struct ComponentRegistry */
+	if (program->components && program->components->first)
+	{
+		_emitComponentRegistry(program->components, out);
+	}
+
+	/* Contar componentes totales para dimensionar el array */
+	int totalComponents = 0;
+	if (program->components)
+	{
+		Component *comp = program->components->first;
+		while (comp)
+		{
+			totalComponents += _countComponents(comp);
+			comp = comp->next;
+		}
+	}
+
+	/* Arrays estáticos */
+	fprintf(out, "static Component component_array[%d];\n", totalComponents);
+	fputs("static ComponentRegistry components;\n", out);
+	fputs("static GuiContext gui_context;\n", out);
+	
+	/* Array de selection order si existe */
+	int selectableCount = 0;
+	if (program->selectionOrder && program->selectionOrderCount > 0)
+	{
+		selectableCount = program->selectionOrderCount;
+		_emitSelectionOrderArray(program, selectableCount, out);
+	}
+	fputc('\n', out);
+
+	/* Variables globales del header --- */
 	_emitVariables(program->variables, out);
 
-	/* main() */
-	fputs("int main(void) {\n", out);
-	_indent(out, 1);
-	fputs("ui_init();\n\n", out);
+	/* Función de inicialización del árbol de componentes */
+	fputs("static void initialize_component_tree() {\n", out);
+	
+	Component *rootComponent = NULL;
+	if (program->components && program->components->first)
+	{
+		int currentIndex = 0;
+		Component *comp = program->components->first;
+		rootComponent = comp; // El primer componente es el root
+		while (comp)
+		{
+			_emitComponentsInOrder(comp, &currentIndex, out);
+			comp = comp->next;
+		}
+	}
+	
+	/* Inicialización del selection order */
+	_emitSelectionOrderInit(program, rootComponent, out);
+	
+	fputs("}\n\n", out);
 
-	_emitComponents(program->components, out, 1);
-
-	_indent(out, 1);
-	fputs("ui_run();\n", out);
-	_indent(out, 1);
-	fputs("return 0;\n", out);
-	fputs("}\n", out);
+	/* TODO: Emitir función main */
+	fputs("// TODO: implementar función main\n", out);
 }
 
 /* ------------------------------------------------------------------ */
