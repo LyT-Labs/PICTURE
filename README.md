@@ -4,7 +4,7 @@
 
 # PICTURE Compiler
 
-Compilador del lenguaje **PICTURE** (PinkOS Interactive Component Tree Universal Runtime Environment) - Un lenguaje declarativo basado en indentación para construir interfaces de usuario para PinkOS.
+Compilador del lenguaje **PICTURE** (PinkOS Interface Construction Terminology for UI Representation & Events) - Un lenguaje declarativo basado en indentación para construir interfaces de usuario para el sistema operativo experimental [PinkOS](https://github.com/lukpeluk/PinkOS).
 
 Este proyecto implementa un compilador usando [Flex](https://github.com/westes/flex) y [Bison](https://www.gnu.org/software/bison) que traduce código PICTURE a C para el runtime de PinkOS.
 
