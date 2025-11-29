@@ -2,7 +2,7 @@
 
 [![✗](https://github.com/LyT-Labs/PICTURE/actions/workflows/pipeline.yaml/badge.svg?branch=production)](https://github.com/LyT-Labs/PICTURE/actions/workflows/pipeline.yaml)
 
-# PICTURE Compiler
+# PICTURE (PinkOS Interface Construction Terminology for UI Representation & Events)
 
 Compilador del lenguaje **PICTURE** (PinkOS Interface Construction Terminology for UI Representation & Events) - Un lenguaje declarativo basado en indentación para construir interfaces de usuario para el sistema operativo experimental [PinkOS](https://github.com/lukpeluk/PinkOS).
 
