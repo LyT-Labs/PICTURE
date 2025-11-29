@@ -15,7 +15,8 @@ static bool _hasSemanticError = false;
 /* Valid property names catalog */
 static const char * VALID_PROPERTIES[] = {
 	"background", "text", "font_size", "color", "on_press", "on_select", 
-	"on_keypress", "on_focus_gain", "on_focus_lost", "align", "width", "height", "x", "y", NULL
+	"on_keypress", "on_focus_gain", "on_focus_lost", "align", "alignment", "width", "height", 
+	"x", "y", "y_position", "border_size", "border_color", "active", NULL
 };
 
 /* Helper function to check if property is valid */
@@ -185,6 +186,16 @@ Property * PropertySemanticAction(const char * key, Value * value) {
 		property->type = PROP_X;
 	} else if (strcmp(key, "y") == 0) {
 		property->type = PROP_Y;
+	} else if (strcmp(key, "y_position") == 0) {
+		property->type = PROP_Y_POSITION;
+	} else if (strcmp(key, "border_size") == 0) {
+		property->type = PROP_BORDER_SIZE;
+	} else if (strcmp(key, "border_color") == 0) {
+		property->type = PROP_BORDER_COLOR;
+	} else if (strcmp(key, "active") == 0) {
+		property->type = PROP_ACTIVE;
+	} else if (strcmp(key, "alignment") == 0) {
+		property->type = PROP_ALIGN;
 	} else if (strcmp(key, "on_select") == 0) {
 		property->type = PROP_ON_SELECT;
 	} else if (strcmp(key, "on_keypress") == 0) {

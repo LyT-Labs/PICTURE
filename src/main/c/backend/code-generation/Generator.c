@@ -109,7 +109,7 @@ static void _emitValueAsCString(const Value *value, FILE *out)
 /**
  * Imprime un Value como expresión entera de C:
  *  - NUMBER       -> 123
- *  - IDENTIFIER   -> textSize   (asumimos que es algo que evalúa a int)
+ *  - IDENTIFIER   -> textSize
  *  Otros casos -> 0
  */
 static void _emitValueAsIntExpr(const Value *value, FILE *out)
@@ -309,9 +309,9 @@ static void _emitPropertyForComponent(const Component *comp,
 		break;
 
 	default:
-		/* Propiedad desconocida: ignoramos pero dejamos comentario. */
+		/* Unknown property: skip but leave marker for debugging */
 		_indent(out, indentLevel);
-		fprintf(out, "/* TODO: unsupported property '%s' on component '%s' */\n",
+		fprintf(out, "/* Unsupported property '%s' on component '%s' */\n",
 				prop->key ? prop->key : "(null)",
 				id ? id : "(null)");
 		break;
@@ -670,6 +670,26 @@ static void _emitSingleComponent(const Component *component, int myIndex, int ch
 				_emitPropertyValue(prop->value, out);
 				fputs(",\n", out);
 				break;
+			case PROP_Y_POSITION:
+				fputs("        .y_position = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_BORDER_SIZE:
+				fputs("        .border_size = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_BORDER_COLOR:
+				fputs("        .border_color = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
+			case PROP_ACTIVE:
+				fputs("        .active = ", out);
+				_emitPropertyValue(prop->value, out);
+				fputs(",\n", out);
+				break;
 			case PROP_ON_PRESS:
 				fputs("        .on_press = ", out);
 				_emitPropertyValue(prop->value, out);
@@ -880,10 +900,10 @@ static void _emitSelectionOrderArray(const Program *program, int selectableCount
 	                ? program->selectionOrderCount 
 	                : 0;
 	
-	// Si el tamaño es 0, declarar array vacío con notación especial de C
+	// Si el tamaño es 0, declarar array con un elemento para cumplir requisitos de C
 	if (arraySize == 0)
 	{
-		fputs("static Component * component_selection_order[1]; // Vacío, pero necesario para compilar\n\n", out);
+		fputs("static Component * component_selection_order[1]; // Empty, required for compilation\n\n", out);
 	}
 	else
 	{

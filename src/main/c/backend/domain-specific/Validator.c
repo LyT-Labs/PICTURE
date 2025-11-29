@@ -55,7 +55,7 @@ static bool _validateValue(const Value *value, const VariableList *vars) {
             return value->identifierValue != NULL;
 
         case VALUE_BUILTIN:
-            // m, l, s, red, blue, center, etc. Bison ya los conoce.
+            // Builtin values (s, m, l, red, blue, green, white, black, left, center, right)
             return true;
 
         default:
@@ -82,12 +82,16 @@ static bool _validateProperty(const Property *prop, const VariableList *vars) {
         case PROP_ON_KEYPRESS:
         case PROP_ON_FOCUS_GAIN:
         case PROP_ON_FOCUS_LOST:
+        case PROP_BORDER_COLOR:
             return true;
 
         case PROP_WIDTH:
         case PROP_HEIGHT:
         case PROP_X:
         case PROP_Y:
+        case PROP_Y_POSITION:
+        case PROP_BORDER_SIZE:
+        case PROP_ACTIVE:
             return (prop->value->type == VALUE_NUMBER ||
                     prop->value->type == VALUE_IDENTIFIER);
 
@@ -97,7 +101,8 @@ static bool _validateProperty(const Property *prop, const VariableList *vars) {
 }
 
 static bool _validatePropertyList(const PropertyList *plist, const VariableList *vars) {
-    if (plist == NULL) return true; // sin propiedades == OK
+    if (plist == NULL)
+        return true; // No properties is valid
 
     Property *p = plist->first;
     while (p != NULL) {
