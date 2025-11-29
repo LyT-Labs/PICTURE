@@ -97,13 +97,13 @@ EOF
 
 ### Elementos del lenguaje
 
-- `---` delimita la sección de variables globales
-- `- nombre: valor` define una variable
-- `* selection_order: id1, id2, id3` define orden de foco para navegación
-- `* identifier: nombre` define el nombre del módulo (genera `nombre_main()`)
+- `---` delimita la sección de headers/metadata (donde van las variables globales y otras configuraciones)
+- `- nombre: valor` define una variable (que funciona como reemplazo textual, similar a un #define en C)
+- `* selection_order: id1, id2, id3` define orden de navegación de los componentes, con tab se iterará el foco en ese orden
+- `* identifier: nombre` define el nombre del módulo (genera `nombre_main()` como función principal e importa nombre.h como archivo con la lógica del programa)
 - `#id` define un componente
-- `- propiedad: valor` define propiedades del componente
-- **Indentación con tabs**: define la jerarquía padre-hijo de componentes
+- `- propiedad: valor` (tabulado) define propiedades del componente
+- **Indentación con tabs**: define la jerarquía padre-hijo de componentes, el render ser hará jerárquicamente donde componentes hijos se dibujan sobre el padre en orden de arriba a abajo
 
 ### Valores builtin (expansión automática)
 
