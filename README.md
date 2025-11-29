@@ -115,23 +115,26 @@ Los siguientes valores se expanden automáticamente como macros:
 | `s`, `m`, `l` | Tamaño | `1`, `2`, `3` | Tamaño de texto |
 | `left`, `center`, `right` | Alineación | `ALIGN_LEFT`, `ALIGN_CENTER`, `ALIGN_RIGHT` | Alineación horizontal |
 
-**Nota**: Las variables con valores builtin NO generan declaraciones, se expanden directamente en cada uso.
-
 ### Propiedades disponibles
 
 | Propiedad | Tipo | Descripción |
 |-----------|------|-------------|
-| `background` | Color/Variable | Color de fondo |
-| `text` | String/Variable | Texto a mostrar |
+| `background` | Color | Color de fondo |
+| `text` | String | Texto a mostrar |
 | `font_size` | Builtin/Number | Tamaño de fuente |
-| `color` | Color/Variable | Color del texto |
-| `align` | Builtin | Alineación horizontal |
-| `width`, `height` | Number | Dimensiones en píxeles |
-| `x`, `y` | Number | Posición en píxeles |
+| `color` | Color | Color del texto |
+| `border_size` | Number | Tamaño en píxeles del borde del componente |
+| `border_color` | Color | Color del borde del componente |
+| `alignment` | Builtin | Alineación horizontal |
+| `y_position` | Number | Posición vertical absoluta, -1 para auto (distribuido uniformemente) |
+| `width`, `height` | Number | Dimensiones interpretadas como porcentaje respecto al padre |
+| `active` | Boolean (1/0) | Una especie de display: none, el componente deja de renderizarse, se ignora a la hora de iterar si era seleccionable y deja de considerarse para la distribución de sus componentes hermanos |
 | `on_press` | Identifier | Callback al presionar |
 | `on_keypress` | Identifier | Callback al escribir |
 | `on_focus_gain` | Identifier | Callback al ganar foco |
 | `on_focus_lost` | Identifier | Callback al perder foco |
+
+Nota: el alineamiento vertical es siempre una distribución uniforme de los hijos, sin contar los que sobrescriban su posición con y_position
 
 ## Configuration
 
