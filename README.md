@@ -2,11 +2,15 @@
 
 [![✗](https://github.com/LyT-Labs/PICTURE/actions/workflows/pipeline.yaml/badge.svg?branch=production)](https://github.com/LyT-Labs/PICTURE/actions/workflows/pipeline.yaml)
 
-# Flex-Bison-Compiler
+# PICTURE Compiler
 
-A base compiler example, developed with Flex and Bison.
+Compilador del lenguaje **PICTURE** (PinkOS Interactive Component Tree Universal Runtime Environment) - Un lenguaje declarativo basado en indentación para construir interfaces de usuario para PinkOS.
+
+Este proyecto implementa un compilador usando [Flex](https://github.com/westes/flex) y [Bison](https://www.gnu.org/software/bison) que traduce código PICTURE a C para el runtime de PinkOS.
 
 * [Requirements](#requirements)
+* [Inicio Rápido](#inicio-rápido)
+* [Sintaxis PICTURE](#sintaxis-picture)
 * [Configuration](#configuration)
 * [Commands](#commands)
 * [CI/CD](#cicd)
@@ -15,6 +19,119 @@ A base compiler example, developed with Flex and Bison.
 ## Requirements
 
 * [Docker v28.3.2](https://www.docker.com/)
+
+## Inicio Rápido
+
+### 1. Compilar el compilador
+
+```bash
+# Usando Docker (recomendado)
+docker compose run --rm compiler bash src/main/bash/build.sh
+
+# O localmente (requiere flex, bison, cmake, gcc)
+bash src/main/bash/build.sh
+```
+
+### 2. Ejecutar el compilador
+
+El compilador lee desde `stdin` y escribe a `stdout`:
+
+```bash
+# Procesar un archivo .pic
+./.build/Flex-Bison-Compiler < src/test/c/accept/10-nested-with-selection-order
+
+# Guardar el resultado en un archivo
+./.build/Flex-Bison-Compiler < mi_archivo.pic > salida.c
+
+# Ver solo errores (redirigir stderr)
+./.build/Flex-Bison-Compiler < mi_archivo.pic 2>/dev/null
+```
+
+### 3. Ejemplo completo
+
+```bash
+# Crear un archivo PICTURE
+cat > mi_ui.pic << 'EOF'
+---
+- titulo: "Mi Aplicación"
+* identifier: main_screen
+---
+
+# ventana
+	- background: white
+	- width: 800
+	- height: 600
+	
+	# label
+		- text: titulo
+		- font_size: l
+		- color: blue
+EOF
+
+# Generar código C
+./.build/Flex-Bison-Compiler < mi_ui.pic > mi_ui.c
+```
+
+## Sintaxis PICTURE
+
+### Estructura de un archivo
+
+```yaml
+---
+- miVariable: "valor"
+- colorFondo: blue
+* selection_order: boton1, boton2, input1
+* identifier: mi_pantalla
+---
+
+# contenedorPrincipal
+	- background: white
+	- width: 400
+	- height: 300
+	
+	# boton1
+		- text: "Click aquí"
+		- color: colorFondo
+		- on_press: handle_click
+```
+
+### Elementos del lenguaje
+
+- `---` delimita la sección de variables globales
+- `- nombre: valor` define una variable
+- `* selection_order: id1, id2, id3` define orden de foco para navegación
+- `* identifier: nombre` define el nombre del módulo (genera `nombre_main()`)
+- `#id` define un componente
+- `- propiedad: valor` define propiedades del componente
+- **Indentación con tabs**: define la jerarquía padre-hijo de componentes
+
+### Valores builtin (expansión automática)
+
+Los siguientes valores se expanden automáticamente como macros:
+
+| Builtin | Tipo | Se expande a | Uso |
+|---------|------|-------------|-----|
+| `red`, `blue`, `green`, `white`, `black` | Color | `&color_red`, `&color_blue`, etc. | Propiedades de color |
+| `s`, `m`, `l` | Tamaño | `1`, `2`, `3` | Tamaño de texto |
+| `left`, `center`, `right` | Alineación | `ALIGN_LEFT`, `ALIGN_CENTER`, `ALIGN_RIGHT` | Alineación horizontal |
+
+**Nota**: Las variables con valores builtin NO generan declaraciones, se expanden directamente en cada uso.
+
+### Propiedades disponibles
+
+| Propiedad | Tipo | Descripción |
+|-----------|------|-------------|
+| `background` | Color/Variable | Color de fondo |
+| `text` | String/Variable | Texto a mostrar |
+| `font_size` | Builtin/Number | Tamaño de fuente |
+| `color` | Color/Variable | Color del texto |
+| `align` | Builtin | Alineación horizontal |
+| `width`, `height` | Number | Dimensiones en píxeles |
+| `x`, `y` | Number | Posición en píxeles |
+| `on_press` | Identifier | Callback al presionar |
+| `on_keypress` | Identifier | Callback al escribir |
+| `on_focus_gain` | Identifier | Callback al ganar foco |
+| `on_focus_lost` | Identifier | Callback al perder foco |
 
 ## Configuration
 

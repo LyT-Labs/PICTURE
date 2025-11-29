@@ -23,3 +23,4 @@
 	- x: 20
 	- y: 70
 	- on_press: handle_press_color
+	- on_focus_gain: handle_release_color

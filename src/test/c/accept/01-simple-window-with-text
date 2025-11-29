@@ -1,8 +1,11 @@
 // Una ventana con un texto fijo de un color y tamaño específicos
+---
+* identifier: picture_hola_mundo
+---
 # main
 	- background: white
 	
-# title
-	- text: "Hola Mundo!"
-	- font_size: m
-	- color: red
+	# title
+		- text: "Hola Mundo!"
+		- font_size: m
+		- color: red

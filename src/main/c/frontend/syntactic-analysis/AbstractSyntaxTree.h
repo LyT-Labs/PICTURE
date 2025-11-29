@@ -65,14 +65,21 @@ enum PropertyType {
 	PROP_BACKGROUND,
 	PROP_TEXT,
 	PROP_FONT_SIZE,
+	PROP_COLOR,
 	PROP_ON_PRESS,
 	PROP_ALIGN,
 	PROP_WIDTH,
 	PROP_HEIGHT,
 	PROP_X,
 	PROP_Y,
+	PROP_Y_POSITION,
+	PROP_BORDER_SIZE,
+	PROP_BORDER_COLOR,
+	PROP_ACTIVE,
 	PROP_ON_SELECT,
-	PROP_ON_KEYPRESS
+	PROP_ON_KEYPRESS,
+	PROP_ON_FOCUS_GAIN,
+	PROP_ON_FOCUS_LOST
 };
 
 struct Value {
@@ -121,6 +128,9 @@ struct VariableList {
 
 struct Program {
 	VariableList * variables;   // --- section variables
+	char ** selectionOrder;     // * selection_order: id1, id2, id3
+	int selectionOrderCount;    // cantidad de IDs en selection_order
+	char * identifier;          // * identifier: screen_name
 	ComponentList * components; // main component tree
 	
 	// Legacy field for backward compatibility

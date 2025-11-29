@@ -1,5 +1,5 @@
 #include "backend/code-generation/Generator.h"
-#include "backend/domain-specific/Calculator.h"
+#include "backend/domain-specific/Validator.h"
 #include "frontend/Frontend.h"
 #include "frontend/lexical-analysis/FlexActions.h"
 #include "frontend/syntactic-analysis/BisonActions.h"
@@ -28,7 +28,7 @@ const int main(const int length, const char ** arguments) {
 		initializeFlexActionsModule(lexicalAnalyzer),
 		initializeBisonActionsModule(&compilerState),
 		initializeFrontendModule(lexicalAnalyzer),
-		initializeCalculatorModule(),
+		initializeValidatorModule(),
 		initializeGeneratorModule()
 	};
 	CompilationStatus compilationStatus = executeSyntacticAnalysis();
@@ -36,14 +36,14 @@ const int main(const int length, const char ** arguments) {
 	if (compilationStatus == SUCCEEDED) {
 		// ----------------------------------------------------------------------------------------
 		// Beginning of the Backend... ------------------------------------------------------------
-		logDebugging(logger, "Computing expression value...");
-		ComputationResult computationResult = executeCalculator(&compilerState);
+		logDebugging(logger, "Validating PICTURE program...");
+		ComputationResult computationResult = executeValidator(&compilerState);
 		if (computationResult.succeeded) {
 			compilerState.value = computationResult.value;
 			executeGenerator(&compilerState);
 		}
 		else {
-			logError(logger, "The computation phase rejects the input program.");
+			logError(logger, "The validation phase rejects the input program.");
 			compilationStatus = FAILED;
 		}
 		// ...end of the Backend. -----------------------------------------------------------------

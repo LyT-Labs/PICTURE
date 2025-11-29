@@ -122,6 +122,22 @@ void destroyProgram(Program * program) {
 	if (program != NULL) {
 		destroyVariableList(program->variables);
 		destroyComponentList(program->components);
+		
+		// Liberar selectionOrder
+		if (program->selectionOrder) {
+			for (int i = 0; i < program->selectionOrderCount; i++) {
+				if (program->selectionOrder[i]) {
+					free(program->selectionOrder[i]);
+				}
+			}
+			free(program->selectionOrder);
+		}
+		
+		// Liberar identifier
+		if (program->identifier) {
+			free(program->identifier);
+		}
+		
 		destroyExpression(program->expression); // Legacy field
 		free(program);
 	}
